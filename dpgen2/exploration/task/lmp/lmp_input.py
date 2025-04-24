@@ -50,6 +50,7 @@ def make_lmp_input(
     nopbc: bool = False,
     max_seed: int = 1000000,
     deepmd_version="2.0",
+    nvnmd_version="0.0",
     trj_seperate_files=True,
     pimd_bead: Optional[str] = None,
 ):
@@ -69,9 +70,9 @@ def make_lmp_input(
     ret += "variable        THERMO_FREQ     equal %d\n" % trj_freq
     ret += "variable        DUMP_FREQ       equal %d\n" % trj_freq
     ret += "variable        TEMP            equal %f\n" % temp
-    if ele_temp_f is not None:
+    if ele_temp_f is not None and nvnmd_version is None:
         ret += "variable        ELE_TEMP        equal %f\n" % ele_temp_f
-    if ele_temp_a is not None:
+    if ele_temp_a is not None and nvnmd_version is None:
         ret += "variable        ELE_TEMP        equal %f\n" % ele_temp_a
     if pres is not None:
         ret += "variable        PRES            equal %f\n" % pres
@@ -106,11 +107,15 @@ def make_lmp_input(
         if pimd_bead is not None
         else lmp_model_devi_name
     )
-    if Version(deepmd_version) < Version("1"):
+    if Version(deepmd_version) < Version("1") and nvnmd_version is None:
         # 0.x
         ret += "pair_style      deepmd %s ${THERMO_FREQ} %s\n" % (
             graph_list,
             model_devi_file_name,
+        )
+    elif nvnmd_version is not None:
+        ret += "pair_style      nvnmd %s\n" % (
+            "model.pb" 
         )
     else:
         # 1.x
@@ -146,6 +151,8 @@ def make_lmp_input(
         )
     ret += "restart         10000 dpgen.restart\n"
     ret += "\n"
+    if(nvnmd_version is not None):
+        ret += 'if "${rerun} > 0" then "jump SELF rerun"\n'
     if pka_e is None:
         ret += 'if "${restart} == 0" then "velocity        all create ${TEMP} %d"' % (
             random.randrange(max_seed - 1) + 1
@@ -193,4 +200,9 @@ def make_lmp_input(
     ret += "\n"
     ret += "timestep        %f\n" % dt
     ret += "run             ${NSTEPS} upto\n"
+    if(nvnmd_version is not None):
+        ret += 'jump SELF end\n'
+        ret += 'label rerun\n'
+        ret += 'rerun %s.0 dump x y z fx fy fz\n' % lmp_traj_file_name
+        ret += 'label end\n' 
     return ret

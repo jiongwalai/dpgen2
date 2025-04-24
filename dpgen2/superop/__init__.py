@@ -10,6 +10,9 @@ from .prep_run_diffcsp import (
 from .prep_run_dp_train import (
     PrepRunDPTrain,
 )
+from .prep_run_nvnmd_train import (
+    PrepRunNvNMDTrain,
+)
 from .prep_run_fp import (
     PrepRunFp,
 )

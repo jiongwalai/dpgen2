@@ -133,6 +133,7 @@ def variant_train():
         "type",
         [
             Argument("dp", dict, dp_train_args()),
+            Argument("dp-nvnmd", dict, dp_train_args()),
             Argument("dp-dist", dict, dp_dist_train_args()),
         ],
         doc=doc,
@@ -454,6 +455,7 @@ def variant_explore():
         "type",
         [
             Argument("lmp", dict, lmp_args(), doc=doc_lmp),
+            Argument("nvnmd", dict, lmp_args(), doc=doc_lmp),
             Argument("calypso", dict, caly_args(), doc=doc_calypso),
             Argument("calypso:default", dict, caly_args(), doc=doc_calypso),
             Argument("calypso:merge", dict, caly_args(), doc=doc_calypso),

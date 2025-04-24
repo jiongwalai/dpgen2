@@ -298,7 +298,16 @@ def variant_task_group():
                 "lmp-md", dict, npt_task_group_args(), alias=["lmp-npt"], doc=doc_lmp_md
             ),
             Argument(
+                "lmp-nvnmd", dict, npt_task_group_args(), alias=["lmp-nvnmd-npt"], doc=doc_lmp_md
+            ),
+            Argument(
                 "lmp-template",
+                dict,
+                lmp_template_task_group_args(),
+                doc=doc_lmp_template,
+            ),
+            Argument(
+                "lmp-nvnmd-template",
                 dict,
                 lmp_template_task_group_args(),
                 doc=doc_lmp_template,
@@ -618,9 +627,19 @@ def make_lmp_task_group_from_config(
     config["conf_idx"] = [] if "conf_idx" not in config else None
     config = lmp_normalize(config)
     config = config_strip_confidx(config)
+    
     if config["type"] == "lmp-md":
         tgroup = NPTTaskGroup()
         config.pop("type")
+        tgroup.set_md(
+            numb_models,
+            mass_map,
+            **config,
+        )
+    elif config["type"] == "lmp-nvnmd":
+        tgroup = NPTTaskGroup()
+        config.pop("type")
+        config["nvnmd_version"] = "0.0"
         tgroup.set_md(
             numb_models,
             mass_map,
@@ -635,6 +654,16 @@ def make_lmp_task_group_from_config(
             lmp_template,
             **config,
         )
+    elif config["type"] == "lmp-nvnmd-template":
+        tgroup = LmpTemplateTaskGroup()
+        config.pop("type")
+        config["nvnmd_version"] = "0.0"
+        lmp_template = config.pop("lmp_template_fname")
+        tgroup.set_lmp(
+            numb_models,
+            lmp_template,
+            **config,
+        ) 
     elif config["type"] == "customized-lmp-template":
         tgroup = CustomizedLmpTemplateTaskGroup()
         config.pop("type")

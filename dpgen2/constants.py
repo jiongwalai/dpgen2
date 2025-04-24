@@ -1,6 +1,8 @@
 train_index_pattern = "%04d"
 train_task_pattern = "task." + train_index_pattern
 train_script_name = "input.json"
+train_cnn_script_name = "input_cnn.json"
+train_qnn_script_name = "input_qnn.json"
 train_log_name = "train.log"
 model_name_pattern = "model.%03d.pb"
 pytorch_model_name_pattern = "model.%03d.pth"
