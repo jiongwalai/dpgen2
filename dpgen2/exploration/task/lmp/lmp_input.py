@@ -203,6 +203,6 @@ def make_lmp_input(
     if(nvnmd_version is not None):
         ret += 'jump SELF end\n'
         ret += 'label rerun\n'
-        ret += 'rerun %s.0 dump x y z fx fy fz\n' % lmp_traj_file_name
+        ret += 'rerun %s.0 dump x y z fx fy fz add yes\n' % lmp_traj_file_name
         ret += 'label end\n' 
     return ret

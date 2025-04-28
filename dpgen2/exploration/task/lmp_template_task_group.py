@@ -230,7 +230,7 @@ def revise_lmp_input_rerun(lmp_lines):
         'label rerun'
     )
     lmp_lines.append(
-        f'rerun rerun {lmp_traj_name}.0 dump x y z fx fy fz'
+        f'rerun rerun {lmp_traj_name}.0 dump x y z fx fy fz add yes'
     )
     lmp_lines.append(
         'label end'
