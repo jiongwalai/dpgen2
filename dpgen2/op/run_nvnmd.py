@@ -4,6 +4,7 @@ import logging
 import os
 import random
 import re
+import itertools
 from pathlib import (
     Path,
 )
@@ -50,6 +51,10 @@ from dpgen2.utils import (
 from dpgen2.utils.run_command import (
     run_command,
 )
+from dpgen2.op.run_caly_model_devi import (
+    write_model_devi_out,
+)
+from ase.io import read
 
 
 class RunNvNMD(OP):
@@ -180,10 +185,9 @@ class RunNvNMD(OP):
             set_models(lmp_input_name, model_names)
 
             # run lmp
-            calc_model_devi_command = ["python /mnt/nvnmd/input/ljh/calc_model_devi.py", "cp %s.0 %s"%(lmp_traj_name, lmp_traj_name)]
             commands = " ; ".join([" ".join(
                 ["cp", model_name, "model.pb", "&&", command, "-i", lmp_input_name, "-log", lmp_log_name, "-v", "rerun", "%d"%i, "&&", "cp", lmp_traj_name, lmp_traj_name+".%d"%i])
-                for i, model_name in enumerate(model_names)] + calc_model_devi_command)
+                for i, model_name in enumerate(model_names)])
             ret, out, err = run_command(commands, shell=True)
             if ret != 0:
                 logging.error(
@@ -213,6 +217,8 @@ class RunNvNMD(OP):
                     with open("job.json", "w") as f:
                         json.dump(data, f, indent=4)
             merge_pimd_files()
+            
+            calc_model_devi([lmp_traj_name+f".{i}" for i in range(len(model_names))])
 
         ret_dict = {
             "log": work_dir / lmp_log_name,
@@ -402,3 +408,41 @@ def merge_pimd_files():
             for model_devi_file in sorted(model_devi_files):
                 with open(model_devi_file, "r") as f2:
                     f.write(f2.read())
+
+def calc_model_devi(
+    traj_files: list[str],
+    fname: str = "model_devi.out",
+):
+  
+    trajectories = []
+    for f in traj_files:
+        traj = read(f, format='lammps-dump-text', index=':', order=True)
+        trajectories.append(traj)
+    
+    num_frames = len(trajectories[0])
+    for traj in trajectories:
+        assert len(traj) == num_frames, "Not match"
+    
+    devi = []
+    for frame_idx in range(num_frames):
+        frames = [traj[frame_idx] for traj in trajectories]
+        
+        all_forces = [atoms.get_forces() for atoms in frames]
+        all_errors = []
+        
+        for atom_idx in range(len(frames[0])):
+            forces = [forces_arr[atom_idx] for forces_arr in all_forces]
+            
+            for a, b in itertools.combinations(forces, 2):
+                error = np.linalg.norm(a - b)
+                all_errors.append(error)
+            
+        max_error = np.max(all_errors) if all_errors else 0.0
+        min_error = np.min(all_errors) if all_errors else 0.0
+        avg_error = np.mean(all_errors) if all_errors else 0.0 
+
+        # ase verion >= 3.26.0, please update ase using "pip install git+https://gitlab.com/ase/ase.git"
+        devi.append([trajectories[0][frame_idx].info['timestep'],0,0,0,max_error, min_error, avg_error,0])
+       
+    devi = np.array(devi)
+    write_model_devi_out(devi, fname=fname) 
