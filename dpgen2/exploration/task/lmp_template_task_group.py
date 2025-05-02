@@ -209,7 +209,7 @@ def revise_lmp_input_dump(lmp_lines, trj_freq, pimd_bead=None,nvnmd_version=None
         ] = f"dump            dpgen_dump all custom {trj_freq} {lmp_traj_file_name} id type x y z fx fy fz"
         lmp_lines.insert(
             idx+1,
-            'if \"${rerun} > 0\" then \"jump SELF rerun'
+            'if \"${rerun} > 0\" then \"jump SELF rerun\"'
         )
     return lmp_lines
 
