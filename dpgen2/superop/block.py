@@ -113,9 +113,6 @@ class ConcurrentLearningBlock(Steps):
         }
         self._input_artifacts = {
             "init_models": InputArtifact(optional=True),
-            "init_models_ckpt_index": InputArtifact(optional=True),
-            "init_models_ckpt_data": InputArtifact(optional=True),
-            "init_models_ckpt_meta": InputArtifact(optional=True),
             "init_data": InputArtifact(),
             "iter_data": InputArtifact(),
         }
@@ -124,9 +121,6 @@ class ConcurrentLearningBlock(Steps):
         }
         self._output_artifacts = {
             "models": OutputArtifact(),
-            "models_ckpt_index": OutputArtifact(),
-            "models_ckpt_data": OutputArtifact(),
-            "models_ckpt_meta": OutputArtifact(),
             "iter_data": OutputArtifact(),
             "trajs": OutputArtifact(),
         }
@@ -230,9 +224,6 @@ def _block_cl(
         },
         artifacts={
             "init_models": block_steps.inputs.artifacts["init_models"],
-            "init_models_ckpt_data": block_steps.inputs.artifacts["init_models_ckpt_data"],
-            "init_models_ckpt_index": block_steps.inputs.artifacts["init_models_ckpt_index"],
-            "init_models_ckpt_meta": block_steps.inputs.artifacts["init_models_ckpt_meta"],
             "init_data": block_steps.inputs.artifacts["init_data"],
             "iter_data": block_steps.inputs.artifacts["iter_data"],
         },
@@ -330,15 +321,6 @@ def _block_cl(
     ].value_from_parameter = select_confs.outputs.parameters["report"]
     block_steps.outputs.artifacts["models"]._from = prep_run_dp_train.outputs.artifacts[
         "models"
-    ]
-    block_steps.outputs.artifacts["models_ckpt_meta"]._from = prep_run_dp_train.outputs.artifacts[
-        "models_ckpt_meta"
-    ]
-    block_steps.outputs.artifacts["models_ckpt_data"]._from = prep_run_dp_train.outputs.artifacts[
-        "models_ckpt_data"
-    ]
-    block_steps.outputs.artifacts["models_ckpt_index"]._from = prep_run_dp_train.outputs.artifacts[
-        "models_ckpt_index"
     ]
     block_steps.outputs.artifacts["iter_data"]._from = collect_data.outputs.artifacts[
         "iter_data"

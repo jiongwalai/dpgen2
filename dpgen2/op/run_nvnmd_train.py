@@ -51,17 +51,13 @@ from dpgen2.utils.run_command import (
 def _make_train_command(
     dp_command,
     train_script_name,
-    impl,
     do_init_model,
     init_model,
-    finetune_mode,
-    finetune_args,
-    init_model_with_finetune,
     train_args="",
 ):
  
     # find checkpoint
-    if impl == "tensorflow" and os.path.isfile("nvnmd_cnn/checkpoint") and not os.path.isfile("nvnmd_cnn/frozen_model.pb"):
+    if os.path.isfile("nvnmd_cnn/checkpoint") and not os.path.isfile("nvnmd_cnn/frozen_model.pb"):
         checkpoint = "nvnmd_cnn/model.ckpt"
     else:
         checkpoint = None
@@ -69,28 +65,22 @@ def _make_train_command(
     if checkpoint is not None:
         command = dp_command + ["train-nvnmd", "--restart", checkpoint, train_script_name] 
         return command
-    # case of init model and finetune
+    
+    # case of init model
     assert checkpoint is None
-    case_init_model = do_init_model # and (not init_model_with_finetune)
-    # nvnmd-train do not support initial model
+    case_init_model = do_init_model
     if case_init_model:
-        # not support initial frozen model in nvnmd
-        #init_flag = "--init-frz-model" if impl == "tensorflow" else "--init-model"
-        init_flag = "--init-model"
-        for i in init_model:
-            shutil.copy(i, "./")
-            
+        init_flag = "--init-frz-model"
         command = dp_command + [
                 "train-nvnmd",
                 init_flag,
-                "model.ckpt",
+                init_model,
                 train_script_name,
             ]
     else:
         command = dp_command + ["train-nvnmd", train_script_name] 
         
     command += train_args.split()
-    print(command)
     return command
 
 
@@ -106,7 +96,6 @@ class RunNvNMDTrain(OP):
 
     default_optional_parameter = {
         "mixed_type": False,
-        "finetune_mode": "no",
     }
 
     @classmethod
@@ -121,9 +110,6 @@ class RunNvNMDTrain(OP):
                 ),
                 "task_path": Artifact(Path),
                 "init_model": Artifact(Path, optional=True),
-                "init_model_ckpt_meta": Artifact(Path, optional=True),
-                "init_model_ckpt_data": Artifact(Path, optional=True),
-                "init_model_ckpt_index": Artifact(Path, optional=True),
                 "init_data": Artifact(NestedDict[Path]),
                 "iter_data": Artifact(List[Path]),
                 "valid_data": Artifact(NestedDict[Path], optional=True),
@@ -138,9 +124,6 @@ class RunNvNMDTrain(OP):
                 "script": Artifact(Path),
                 "cnn_model": Artifact(Path),
                 "qnn_model": Artifact(Path),
-                "model_ckpt_data": Artifact(Path),
-                "model_ckpt_meta": Artifact(Path),
-                "model_ckpt_index": Artifact(Path),
                 "lcurve": Artifact(Path),
                 "log": Artifact(Path),
             }
@@ -170,7 +153,8 @@ class RunNvNMDTrain(OP):
         Any
             Output dict with components:
             - `script`: (`Artifact(Path)`) The training script.
-            - `model`: (`Artifact(Path)`) The trained frozen model.
+            - `cnn_model`: (`Artifact(Path)`) The trained continuous frozen model.
+            - `qnn_model`: (`Artifact(Path)`) The trained quantized  frozen model.
             - `lcurve`: (`Artifact(Path)`) The learning curve file.
             - `log`: (`Artifact(Path)`) The log file of training.
 
@@ -180,20 +164,13 @@ class RunNvNMDTrain(OP):
             On the failure of training or freezing. Human intervention needed.
         """
         mixed_type = ip["optional_parameter"]["mixed_type"]
-        finetune_mode = ip["optional_parameter"]["finetune_mode"]
         config = ip["config"] if ip["config"] is not None else {}
-        impl = ip["config"].get("impl", "tensorflow")
         dp_command = ip["config"].get("command", "dp").split()
-        assert impl in ["tensorflow"]
-        finetune_args = config.get("finetune_args", "")
         train_args = config.get("train_args", "")
         config = RunNvNMDTrain.normalize_config(config)
         task_name = ip["task_name"]
         task_path = ip["task_path"]
         init_model = ip["init_model"]
-        init_model_ckpt_data  = ip["init_model_ckpt_data"]
-        init_model_ckpt_meta  = ip["init_model_ckpt_meta"]
-        init_model_ckpt_index  = ip["init_model_ckpt_index"]
         init_data = ip["init_data"]
         iter_data = ip["iter_data"]
         valid_data = ip["valid_data"]
@@ -201,7 +178,6 @@ class RunNvNMDTrain(OP):
         iter_data_new_exp = _expand_all_multi_sys_to_sys(iter_data[-1:])
         iter_data_exp = iter_data_old_exp + iter_data_new_exp
         work_dir = Path(task_name)
-        init_model_with_finetune = config["init_model_with_finetune"]
 
         # update the input script
         input_script = Path(task_path) / train_script_name
@@ -213,7 +189,6 @@ class RunNvNMDTrain(OP):
             major_version = "2"
 
         # auto prob style
-        init_model = [init_model_ckpt_meta, init_model_ckpt_data, init_model_ckpt_index] if init_model is not None else init_model
         do_init_model = RunNvNMDTrain.decide_init_model(
             config,
             init_model,
@@ -236,14 +211,14 @@ class RunNvNMDTrain(OP):
             init_data,
             iter_data_exp,
             auto_prob_str,
-            "2",
+            major_version,
             valid_data,
         )
         train_cnn_dict = RunNvNMDTrain.write_other_to_input_script(
-            train_dict, config, do_init_model, False, "2",
+            train_dict, config, do_init_model, False, major_version,
         )
         train_qnn_dict = RunNvNMDTrain.write_other_to_input_script(
-            train_dict, config, do_init_model, True, "2",
+            train_dict, config, do_init_model, True, major_version,
         )
 
         with set_directory(work_dir):
@@ -268,51 +243,47 @@ class RunNvNMDTrain(OP):
             command = _make_train_command(
                 dp_command,
                 train_cnn_script_name,
-                impl,
                 do_init_model,
                 init_model,
-                finetune_mode,
-                finetune_args,
-                init_model_with_finetune,
                 train_args = "-s s1",
             )
 
-            ret, out, err = run_command(command)
-            if ret != 0:
-                clean_before_quit()
-                logging.error(
-                    "".join(
-                        (
-                            "dp train failed\n",
-                            "out msg: ",
-                            out,
-                            "\n",
-                            "err msg: ",
-                            err,
-                            "\n",
+            if not RunNvNMDTrain.skip_training(
+                train_dict, config, init_model, iter_data
+            ):
+                ret, out, err = run_command(command)
+                if ret != 0:
+                    clean_before_quit()
+                    logging.error(
+                        "".join(
+                            (
+                                "dp train-nvnmd -s s1 failed\n",
+                                "out msg: ",
+                                out,
+                                "\n",
+                                "err msg: ",
+                                err,
+                                "\n",
+                            )
                         )
                     )
-                )
-                raise FatalError("dp train failed")
-            fplog.write("#=================== train std out ===================\n")
-            fplog.write(out)
-            fplog.write("#=================== train std err ===================\n")
-            fplog.write(err)
+                    raise FatalError("dp train-nvnmd -s s1 failed")
+                fplog.write("#=================== train std out ===================\n")
+                fplog.write(out)
+                fplog.write("#=================== train std err ===================\n")
+                fplog.write(err)
+                
+                cnn_model_file = "nvnmd_cnn/frozen_model.pb"
             
-            #if RunNvNMDTrain.skip_training(
-            #work_dir, train_dict, init_model, iter_data, finetune_mode
-            #):
-            
-            # train model
+            else:
+                cnn_model_file = init_model
+                
+            # train qnn model
             command = _make_train_command(
                 dp_command,
                 train_qnn_script_name,
-                impl,
                 do_init_model,
                 init_model,
-                finetune_mode,
-                finetune_args,
-                init_model_with_finetune,
                 train_args = "-s s2",
             )
 
@@ -322,7 +293,7 @@ class RunNvNMDTrain(OP):
                 logging.error(
                     "".join(
                         (
-                            "nvnmd train (cnn) failed\n",
+                            "dp train-nvnmd -s s2 failed\n",
                             "out msg: ",
                             out,
                             "\n",
@@ -332,32 +303,24 @@ class RunNvNMDTrain(OP):
                         )
                     )
                 )
-                raise FatalError("nvnmd train (cnn) failed")
+                raise FatalError("dp train-nvnmd -s s2 failed")
             fplog.write("#=================== train std out ===================\n")
             fplog.write(out)
             fplog.write("#=================== train std err ===================\n")
             fplog.write(err)
-
-            if finetune_mode == "finetune" and os.path.exists("input_v2_compat.json"):
-                shutil.copy2("input_v2_compat.json", train_script_name)
-
-            # freeze model
-            cnn_model_file = "nvnmd_cnn/frozen_model.pb"
-            model_ckpt_data_file = "nvnmd_cnn/model.ckpt.data-00000-of-00001"
-            model_ckpt_index_file = "nvnmd_cnn/model.ckpt.index"
-            model_ckpt_meta_file = "nvnmd_cnn/model.ckpt.meta"
+            
             qnn_model_file = "nvnmd_qnn/model.pb"
-            lcurve_file = "nvnmd_cnn/lcurve.out"
+            lcurve_file = "nvnmd_qnn/lcurve.out"
 
+            if os.path.exists("input_v2_compat.json"):
+                shutil.copy2("input_v2_compat.json", train_script_name)
+                
             clean_before_quit()
 
         return OPIO(
             {
                 "script": work_dir / train_script_name,
                 "cnn_model": work_dir / cnn_model_file,
-                "model_ckpt_data": work_dir / model_ckpt_data_file,
-                "model_ckpt_meta": work_dir / model_ckpt_meta_file,
-                "model_ckpt_index": work_dir / model_ckpt_index_file,
                 "qnn_model": work_dir / qnn_model_file,
                 "lcurve": work_dir / lcurve_file,
                 "log": work_dir / "train.log",
@@ -455,11 +418,7 @@ class RunNvNMDTrain(OP):
         train_dict,
         init_model,
         iter_data,
-        finetune_mode,
     ):
-        # do not skip if we do finetuning
-        #if finetune_mode is not None and finetune_mode == "finetune":
-        #    return False
         # we have init model and no iter data, skip training
         if (init_model is not None) and (iter_data is None or len(iter_data) == 0):
             with set_directory(work_dir):
@@ -513,7 +472,6 @@ class RunNvNMDTrain(OP):
     @staticmethod
     def training_args():
         doc_command = "The command for DP, 'dp' for default"
-        doc_impl = "The implementation/backend of DP. It can be 'tensorflow' or 'pytorch'. 'tensorflow' for default."
         doc_init_model_policy = "The policy of init-model training. It can be\n\n\
     - 'no': No init-model training. Traing from scratch.\n\n\
     - 'yes': Do init-model training.\n\n\
@@ -530,10 +488,6 @@ class RunNvNMDTrain(OP):
         doc_init_model_start_pref_v = (
             "The start virial prefactor in loss when init-model"
         )
-        doc_finetune_args = "Extra arguments for finetuning"
-        doc_multitask = "Do multitask training"
-        doc_head = "Head to use in the multitask training"
-        doc_init_model_with_finetune = "Use finetune for init model"
         doc_train_args = "Extra arguments for dp train"
         return [
             Argument(
@@ -542,14 +496,6 @@ class RunNvNMDTrain(OP):
                 optional=True,
                 default="dp",
                 doc=doc_command,
-            ),
-            Argument(
-                "impl",
-                str,
-                optional=True,
-                default="tensorflow",
-                doc=doc_impl,
-                alias=["backend"],
             ),
             Argument(
                 "init_model_policy",
@@ -600,34 +546,6 @@ class RunNvNMDTrain(OP):
                 optional=True,
                 default=0.0,
                 doc=doc_init_model_start_pref_v,
-            ),
-            Argument(
-                "init_model_with_finetune",
-                bool,
-                optional=True,
-                default=False,
-                doc=doc_init_model_with_finetune,
-            ),
-            Argument(
-                "finetune_args",
-                str,
-                optional=True,
-                default="",
-                doc=doc_finetune_args,
-            ),
-            Argument(
-                "multitask",
-                bool,
-                optional=True,
-                default=False,
-                doc=doc_multitask,
-            ),
-            Argument(
-                "head",
-                str,
-                optional=True,
-                default=None,
-                doc=doc_head,
             ),
             Argument(
                 "train_args",

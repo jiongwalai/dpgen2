@@ -114,6 +114,6 @@ class PrepNvNMDTrain(OP):
         jtmp = input_dict.copy()
         
         # the key "seed" in "nvnmd" is used to set the random seed for the network parameters, it is developing.
-        #jtmp["nvnmd"]["seed"] = random.randrange(sys.maxsize) % (2**32)
+        jtmp["nvnmd"]["seed"] = random.randrange(sys.maxsize) % (2**32)
         jtmp["training"]["seed"] = random.randrange(sys.maxsize) % (2**32)
         return jtmp

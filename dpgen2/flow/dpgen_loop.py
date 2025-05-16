@@ -186,9 +186,6 @@ class ConcurrentLearningLoop(Steps):
         }
         self._input_artifacts = {
             "init_models": InputArtifact(optional=True),
-            "init_models_ckpt_meta":  InputArtifact(optional=True),
-            "init_models_ckpt_data":  InputArtifact(optional=True),
-            "init_models_ckpt_index": InputArtifact(optional=True),
             "init_data": InputArtifact(),
             "iter_data": InputArtifact(),
         }
@@ -197,9 +194,6 @@ class ConcurrentLearningLoop(Steps):
         }
         self._output_artifacts = {
             "models": OutputArtifact(),
-            "models_ckpt_meta": OutputArtifact(),
-            "models_ckpt_data": OutputArtifact(),
-            "models_ckpt_index": OutputArtifact(),
             "iter_data": OutputArtifact(),
         }
 
@@ -283,9 +277,6 @@ class ConcurrentLearning(Steps):
 
         self._input_artifacts = {
             "init_models": InputArtifact(optional=True),
-            "init_models_ckpt_meta": InputArtifact(optional=True),
-            "init_models_ckpt_data": InputArtifact(optional=True),
-            "init_models_ckpt_index": InputArtifact(optional=True),
             "init_data": InputArtifact(),
             "iter_data": InputArtifact(),
         }
@@ -294,9 +285,6 @@ class ConcurrentLearning(Steps):
         }
         self._output_artifacts = {
             "models": OutputArtifact(),
-            "models_ckpt_meta": OutputArtifact(),
-            "models_ckpt_data": OutputArtifact(),
-            "models_ckpt_index": OutputArtifact(),
             "iter_data": OutputArtifact(),
         }
 
@@ -386,9 +374,6 @@ def _loop(
         parameters=block_common_parameters,
         artifacts={
             "init_models": steps.inputs.artifacts["init_models"],
-            "init_models_ckpt_meta": steps.inputs.artifacts["init_models_ckpt_meta"],
-            "init_models_ckpt_index": steps.inputs.artifacts["init_models_ckpt_index"],
-            "init_models_ckpt_data": steps.inputs.artifacts["init_models_ckpt_data"],
             "init_data": steps.inputs.artifacts["init_data"],
             "iter_data": steps.inputs.artifacts["iter_data"],
         },
@@ -461,9 +446,6 @@ def _loop(
         parameters=next_common_parameters,
         artifacts={
             "init_models": block_step.outputs.artifacts["models"],
-            "init_models_ckpt_meta":  block_step.outputs.artifacts["models_ckpt_meta"],
-            "init_models_ckpt_data":  block_step.outputs.artifacts["models_ckpt_data"],
-            "init_models_ckpt_index": block_step.outputs.artifacts["models_ckpt_index"],
             "init_data": steps.inputs.artifacts["init_data"],
             "iter_data": block_step.outputs.artifacts["iter_data"],
         },
@@ -482,21 +464,6 @@ def _loop(
         _if=(scheduler_step.outputs.parameters["converged"] == True),
         _then=block_step.outputs.artifacts["models"],
         _else=next_step.outputs.artifacts["models"],
-    )
-    steps.outputs.artifacts["models_ckpt_meta"].from_expression = if_expression(
-        _if=(scheduler_step.outputs.parameters["converged"] == True),
-        _then=block_step.outputs.artifacts["models_ckpt_meta"],
-        _else=next_step.outputs.artifacts["models_ckpt_meta"],
-    )
-    steps.outputs.artifacts["models_ckpt_data"].from_expression = if_expression(
-        _if=(scheduler_step.outputs.parameters["converged"] == True),
-        _then=block_step.outputs.artifacts["models_ckpt_data"],
-        _else=next_step.outputs.artifacts["models_ckpt_data"],
-    )
-    steps.outputs.artifacts["models_ckpt_index"].from_expression = if_expression(
-        _if=(scheduler_step.outputs.parameters["converged"] == True),
-        _then=block_step.outputs.artifacts["models_ckpt_index"],
-        _else=next_step.outputs.artifacts["models_ckpt_index"],
     )
     steps.outputs.artifacts["iter_data"].from_expression = if_expression(
         _if=(scheduler_step.outputs.parameters["converged"] == True),
@@ -583,9 +550,6 @@ def _dpgen(
         parameters=common_parameters,
         artifacts={
             "init_models": steps.inputs.artifacts["init_models"],
-            "init_models_ckpt_meta":  steps.inputs.artifacts["init_models_ckpt_meta"],
-            "init_models_ckpt_data":  steps.inputs.artifacts["init_models_ckpt_data"],
-            "init_models_ckpt_index": steps.inputs.artifacts["init_models_ckpt_index"],
             "init_data": steps.inputs.artifacts["init_data"],
             "iter_data": steps.inputs.artifacts["iter_data"],
         },
@@ -597,9 +561,6 @@ def _dpgen(
         "exploration_scheduler"
     ].value_from_parameter = loop_step.outputs.parameters["exploration_scheduler"]
     steps.outputs.artifacts["models"]._from = loop_step.outputs.artifacts["models"]
-    steps.outputs.artifacts["models_ckpt_meta"]._from  = loop_step.outputs.artifacts["models_ckpt_meta"]
-    steps.outputs.artifacts["models_ckpt_data"]._from  = loop_step.outputs.artifacts["models_ckpt_data"]
-    steps.outputs.artifacts["models_ckpt_index"]._from = loop_step.outputs.artifacts["models_ckpt_index"]
     steps.outputs.artifacts["iter_data"]._from = loop_step.outputs.artifacts[
         "iter_data"
     ]
