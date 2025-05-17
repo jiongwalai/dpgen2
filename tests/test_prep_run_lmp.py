@@ -53,6 +53,7 @@ from context import (
 )
 from mocked_ops import (
     MockedRunLmp,
+    MockedRunNvNMD,
     mocked_numb_models,
 )
 

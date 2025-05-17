@@ -249,7 +249,7 @@ class RunNvNMDTrain(OP):
             )
 
             if not RunNvNMDTrain.skip_training(
-                train_dict, config, init_model, iter_data
+                work_dir, train_dict, init_model, iter_data
             ):
                 ret, out, err = run_command(command)
                 if ret != 0:
@@ -405,7 +405,6 @@ class RunNvNMDTrain(OP):
                         v["start_pref_e"] = 1
                         v["start_pref_f"] = 1
                         v["start_pref_v"] = 1
-            odict["learning_rate"]["start_lr"] = odict["learning_rate"]["stop_lr"]
             if major_version == "1":
                 odict["training"]["stop_batch"] = 0
             elif major_version == "2":
