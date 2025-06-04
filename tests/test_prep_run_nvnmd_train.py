@@ -168,7 +168,7 @@ def check_run_train_nvnmd_output(
         iter_data,
         only_check_name=only_check_name,
     )
-    _check_model(tcase, "model.pb", cwd, init_model)
+    _check_model(tcase, "frozen_model.pb", cwd, init_model)
     _check_lcurve(tcase, "lcurve.out", cwd, script)
     os.chdir(cwd)
 
@@ -270,7 +270,6 @@ class TestMockedRunNvNMDTrain(unittest.TestCase):
                 self.iter_data,
             )
 
-
 @unittest.skipIf(skip_ut_with_dflow, skip_ut_with_dflow_reason)
 class TestTrainNvNMD(unittest.TestCase):
     def setUp(self):
@@ -333,7 +332,7 @@ class TestTrainNvNMD(unittest.TestCase):
                 "iter_data": self.iter_data,
             },
         )
-        wf = Workflow(name="dp-train", host=default_host)
+        wf = Workflow(name="nvnmd-train", host=default_host)
         wf.add(train_step)
         wf.submit()
 
@@ -383,7 +382,7 @@ class TestTrainNvNMD(unittest.TestCase):
                 "iter_data": self.iter_data,
             },
         )
-        wf = Workflow(name="dp-train", host=default_host)
+        wf = Workflow(name="nvnmd-train", host=default_host)
         wf.add(train_step)
         wf.submit()
 

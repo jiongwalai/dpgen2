@@ -52,7 +52,7 @@ from context import (
     upload_python_packages,
 )
 from mocked_ops import (
-    MockedRunLmp,
+    MockedRunNvNMD,
     mocked_numb_models,
 )
 
@@ -147,7 +147,7 @@ class TestPrepLmp(unittest.TestCase):
         self.assertEqual(tdirs, [str(ii) for ii in out["task_paths"]])
 
 
-class TestMockedRunLmp(unittest.TestCase):
+class TestMockedRunNvNMD(unittest.TestCase):
     def setUp(self):
         self.ntask = 2
         self.nmodels = 3
@@ -205,7 +205,7 @@ class TestMockedRunLmp(unittest.TestCase):
                     "config": {},
                 }
             )
-            op = MockedRunLmp()
+            op = MockedRunNvNMD()
             out = op.execute(ip)
             self.assertEqual(out["log"], Path(f"task.{ii:06d}") / lmp_log_name)
             self.assertEqual(out["traj"], Path(f"task.{ii:06d}") / lmp_traj_name)
@@ -220,7 +220,7 @@ class TestMockedRunLmp(unittest.TestCase):
 
 # @unittest.skip("temp")
 @unittest.skipIf(skip_ut_with_dflow, skip_ut_with_dflow_reason)
-class TestPrepRunLmp(unittest.TestCase):
+class TestPrepRunNvNMD(unittest.TestCase):
     def setUp(self):
         self.ngrp = 2
         self.ntask_per_grp = 3
@@ -271,7 +271,7 @@ class TestPrepRunLmp(unittest.TestCase):
         steps = PrepRunLmp(
             "prep-run-lmp",
             PrepLmp,
-            MockedRunLmp,
+            MockedRunNvNMD,
             upload_python_packages=upload_python_packages,
             prep_config=default_config,
             run_config=default_config,
