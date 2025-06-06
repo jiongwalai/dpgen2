@@ -185,9 +185,20 @@ class RunNvNMD(OP):
             set_models(lmp_input_name, model_names)
 
             # run lmp
-            commands = " ; ".join([" ".join(
-                ["cp", model_name, "model.pb", "&&", command, "-i", lmp_input_name, "-log", lmp_log_name, "-v", "rerun", "%d"%i, "&&", "cp", lmp_traj_name, lmp_traj_name+".%d"%i])
-                for i, model_name in enumerate(model_names)])
+            commands = " ; ".join(
+                    [
+                        " ".join(
+                            [
+                                "cp", model_name, "model.pb", "&&",
+                                "mylmp", "-i", lmp_input_name,
+                                "-log", lmp_log_name,
+                                "-v", "rerun", "%d"%i, "&&", 
+                                "cp", lmp_traj_name, lmp_traj_name+".%d"%i
+                            ]
+                        )
+                        for i, model_name in enumerate(models)
+                    ]
+                )
             ret, out, err = run_command(commands, shell=True)
             if ret != 0:
                 logging.error(
