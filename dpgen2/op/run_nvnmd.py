@@ -165,7 +165,7 @@ class RunNvNMD(OP):
                         Path(mname).symlink_to(mm)
                     except:
                         logging.warning(
-                            "failed to link %s, maybe already linked" % iname
+                            "failed to link %s, maybe already linked" % mname
                         )
                         pass
                     
