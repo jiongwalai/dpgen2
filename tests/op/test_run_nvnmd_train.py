@@ -31,6 +31,8 @@ from .context import (
 )
 from dpgen2.constants import (
     train_script_name,
+    train_cnn_script_name,
+    train_qnn_script_name,
     train_task_pattern,
 )
 from dpgen2.op.run_nvnmd_train import (
@@ -410,14 +412,15 @@ class TestRunNvNMDTrain(unittest.TestCase):
                 }
             )
         )
-        self.assertEqual(out["script"], work_dir / train_script_name)
-        self.assertEqual(out["model"], work_dir / "frozen_model.pb")
-        self.assertEqual(out["lcurve"], work_dir / "lcurve.out")
+        self.assertEqual(out["script"], work_dir / train_cnn_script_name)
+        self.assertEqual(out["cnn_model"], work_dir / "nvnmd_cnn/frozen_model.pb")
+        self.assertEqual(out["qnn_model"], work_dir / "nvnmd_qnn/model.pb")
+        self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
         self.assertEqual(out["log"], work_dir / "train.log")
 
         calls = [
-            call(["dp", "train", train_script_name]),
-            call(["dp", "freeze", "-o", "frozen_model.pb"]),
+            call(["dp", "train-nvnmd", train_cnn_script_name, "-s", "s1"]),
+            call(["dp", "train-nvnmd", train_qnn_script_name, "-s", "s2"])
         ]
         mocked_run.assert_has_calls(calls)
 
@@ -425,12 +428,12 @@ class TestRunNvNMDTrain(unittest.TestCase):
         self.assertTrue(out["log"].is_file())
         self.assertEqual(
             out["log"].read_text(),
-            "#=================== train std out ===================\n"
+            "#=================== train_cnn std out ===================\n"
             "foo\n"
-            "#=================== train std err ===================\n"
-            "#=================== freeze std out ===================\n"
+            "#=================== train_cnn std err ===================\n"
+            "#=================== train_qnn std out ===================\n"
             "bar\n"
-            "#=================== freeze std err ===================\n",
+            "#=================== train_qnn std err ===================\n",
         )
         with open(out["script"]) as fp:
             jdata = json.load(fp)
@@ -463,14 +466,15 @@ class TestRunNvNMDTrain(unittest.TestCase):
                 }
             )
         )
-        self.assertEqual(out["script"], work_dir / train_script_name)
-        self.assertEqual(out["model"], work_dir / "frozen_model.pb")
-        self.assertEqual(out["lcurve"], work_dir / "lcurve.out")
+        self.assertEqual(out["script"], work_dir / train_cnn_script_name)
+        self.assertEqual(out["cnn_model"], work_dir / "nvnmd_cnn/frozen_model.pb")
+        self.assertEqual(out["qnn_model"], work_dir / "nvnmd_qnn/model.pb")
+        self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
         self.assertEqual(out["log"], work_dir / "train.log")
 
         calls = [
-            call(["dp", "train", train_script_name]),
-            call(["dp", "freeze", "-o", "frozen_model.pb"]),
+            call(["dp", "train-nvnmd", train_cnn_script_name, "-s", "s1"]),
+            call(["dp", "train-nvnmd", train_qnn_script_name, "-s", "s2"])
         ]
         mocked_run.assert_has_calls(calls)
 
@@ -478,12 +482,12 @@ class TestRunNvNMDTrain(unittest.TestCase):
         self.assertTrue(out["log"].is_file())
         self.assertEqual(
             out["log"].read_text(),
-            "#=================== train std out ===================\n"
+            "#=================== train_cnn std out ===================\n"
             "foo\n"
-            "#=================== train std err ===================\n"
-            "#=================== freeze std out ===================\n"
+            "#=================== train_cnn std err ===================\n"
+            "#=================== train_qnn std out ===================\n"
             "bar\n"
-            "#=================== freeze std err ===================\n",
+            "#=================== train_qnn std err ===================\n",
         )
         with open(out["script"]) as fp:
             jdata = json.load(fp)
@@ -516,22 +520,24 @@ class TestRunNvNMDTrain(unittest.TestCase):
                 }
             )
         )
-        self.assertEqual(out["script"], work_dir / train_script_name)
-        self.assertEqual(out["model"], work_dir / "frozen_model.pb")
-        self.assertEqual(out["lcurve"], work_dir / "lcurve.out")
+        self.assertEqual(out["script"], work_dir / train_cnn_script_name)
+        self.assertEqual(out["cnn_model"], work_dir / "nvnmd_cnn/frozen_model.pb")
+        self.assertEqual(out["qnn_model"], work_dir / "nvnmd_qnn/model.pb")
+        self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
         self.assertEqual(out["log"], work_dir / "train.log")
 
         calls = [
             call(
                 [
                     "dp",
-                    "train",
+                    "train-nvnmd",
                     "--init-frz-model",
                     str(self.init_model),
-                    train_script_name,
+                    train_cnn_script_name,
+                    "-s",
+                    "s1"
                 ]
-            ),
-            call(["dp", "freeze", "-o", "frozen_model.pb"]),
+            )
         ]
         mocked_run.assert_has_calls(calls)
 
@@ -539,12 +545,12 @@ class TestRunNvNMDTrain(unittest.TestCase):
         self.assertTrue(out["log"].is_file())
         self.assertEqual(
             out["log"].read_text(),
-            "#=================== train std out ===================\n"
+            "#=================== train_cnn std out ===================\n"
             "foo\n"
-            "#=================== train std err ===================\n"
-            "#=================== freeze std out ===================\n"
+            "#=================== train_cnn std err ===================\n"
+            "#=================== train_qnn std out ===================\n"
             "bar\n"
-            "#=================== freeze std err ===================\n",
+            "#=================== train_qnn std err ===================\n",
         )
         with open(out["script"]) as fp:
             jdata = json.load(fp)
@@ -580,12 +586,12 @@ class TestRunNvNMDTrain(unittest.TestCase):
             )
 
         calls = [
-            call(["dp", "train", train_script_name]),
+            call(["dp", "train-nvnmd", train_cnn_script_name, "-s", "s1"]),
         ]
         mocked_run.assert_has_calls(calls)
 
         self.assertTrue(work_dir.is_dir())
-        with open(work_dir / train_script_name) as fp:
+        with open(work_dir / train_cnn_script_name) as fp:
             jdata = json.load(fp)
             self.assertDictEqual(jdata, self.expected_odict_v2)
 
@@ -708,14 +714,15 @@ class TestRunNvNMDTrainNullIterData(unittest.TestCase):
                 }
             )
         )
-        self.assertEqual(out["script"], work_dir / train_script_name)
-        self.assertEqual(out["model"], work_dir / "frozen_model.pb")
-        self.assertEqual(out["lcurve"], work_dir / "lcurve.out")
+        self.assertEqual(out["script"], work_dir / train_cnn_script_name)
+        self.assertEqual(out["cnn_model"], work_dir / "nvnmd_cnn/frozen_model.pb")
+        self.assertEqual(out["qnn_model"], work_dir / "nvnmd_qnn/model.pb")
+        self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
         self.assertEqual(out["log"], work_dir / "train.log")
 
         calls = [
-            call(["dp", "train", train_script_name]),
-            call(["dp", "freeze", "-o", "frozen_model.pb"]),
+            call(["dp", "train-nvnmd", train_cnn_script_name, "-s", "s1"]),
+            call(["dp", "train-nvnmd", train_qnn_script_name, "-s", "s2"])
         ]
         mocked_run.assert_has_calls(calls)
 
@@ -723,12 +730,12 @@ class TestRunNvNMDTrainNullIterData(unittest.TestCase):
         self.assertTrue(out["log"].is_file())
         self.assertEqual(
             out["log"].read_text(),
-            "#=================== train std out ===================\n"
+            "#=================== train_cnn std out ===================\n"
             "foo\n"
-            "#=================== train std err ===================\n"
-            "#=================== freeze std out ===================\n"
+            "#=================== train_cnn std err ===================\n"
+            "#=================== train_qnn std out ===================\n"
             "bar\n"
-            "#=================== freeze std err ===================\n",
+            "#=================== train_qnn std err ===================\n",
         )
         with open(out["script"]) as fp:
             jdata = json.load(fp)

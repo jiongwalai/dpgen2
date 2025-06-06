@@ -74,7 +74,7 @@ def _make_train_command(
         command = dp_command + [
                 "train-nvnmd",
                 init_flag,
-                init_model,
+                str(init_model),
                 train_script_name,
             ]
     else:
@@ -268,15 +268,17 @@ class RunNvNMDTrain(OP):
                         )
                     )
                     raise FatalError("dp train-nvnmd -s s1 failed")
-                fplog.write("#=================== train std out ===================\n")
+                fplog.write("#=================== train_cnn std out ===================\n")
                 fplog.write(out)
-                fplog.write("#=================== train std err ===================\n")
+                fplog.write("#=================== train_cnn std err ===================\n")
                 fplog.write(err)
                 
                 cnn_model_file = "nvnmd_cnn/frozen_model.pb"
+                lcurve_file = "nvnmd_cnn/lcurve.out"
             
             else:
                 cnn_model_file = init_model
+                lcurve_file = "nvnmd_qnn/lcurve.out"
                 
             # train qnn model
             command = _make_train_command(
@@ -304,13 +306,12 @@ class RunNvNMDTrain(OP):
                     )
                 )
                 raise FatalError("dp train-nvnmd -s s2 failed")
-            fplog.write("#=================== train std out ===================\n")
+            fplog.write("#=================== train_qnn std out ===================\n")
             fplog.write(out)
-            fplog.write("#=================== train std err ===================\n")
+            fplog.write("#=================== train_qnn std err ===================\n")
             fplog.write(err)
             
             qnn_model_file = "nvnmd_qnn/model.pb"
-            lcurve_file = "nvnmd_qnn/lcurve.out"
 
             if os.path.exists("input_v2_compat.json"):
                 shutil.copy2("input_v2_compat.json", train_script_name)
@@ -319,7 +320,7 @@ class RunNvNMDTrain(OP):
 
         return OPIO(
             {
-                "script": work_dir / train_script_name,
+                "script": work_dir / train_cnn_script_name,
                 "cnn_model": work_dir / cnn_model_file,
                 "qnn_model": work_dir / qnn_model_file,
                 "lcurve": work_dir / lcurve_file,
