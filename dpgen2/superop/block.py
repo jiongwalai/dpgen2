@@ -243,7 +243,7 @@ def _block_cl(
             "type_map": block_steps.inputs.parameters["type_map"],
         },
         artifacts={
-            "models": prep_run_dp_train.outputs.artifacts["nvnmodels"],
+            "models": prep_run_dp_train.outputs.artifacts["models"],
         },
         key="--".join(
             ["%s" % block_steps.inputs.parameters["block_id"], "prep-run-explore"]

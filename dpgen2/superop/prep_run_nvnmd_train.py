@@ -88,7 +88,6 @@ class PrepRunNvNMDTrain(Steps):
         self._output_artifacts = {
             "scripts": OutputArtifact(),
             "models": OutputArtifact(),
-            "nvnmodels": OutputArtifact(),
             "logs": OutputArtifact(),
             "lcurves": OutputArtifact(),
         }
@@ -234,7 +233,7 @@ def _prep_run_nvnmd_train(
         "script"
     ]
     train_steps.outputs.artifacts["models"]._from = run_train.outputs.artifacts["cnn_model"]
-    train_steps.outputs.artifacts["nvnmodels"]._from = run_train.outputs.artifacts["qnn_model"]
+    #train_steps.outputs.artifacts["nvnmodels"]._from = run_train.outputs.artifacts["cnn_model"]
     train_steps.outputs.artifacts["logs"]._from = run_train.outputs.artifacts["log"]
     train_steps.outputs.artifacts["lcurves"]._from = run_train.outputs.artifacts[
         "lcurve"
