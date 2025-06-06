@@ -87,7 +87,7 @@ class TestRunNvNMD(unittest.TestCase):
         self.assertEqual(out["traj"], work_dir / lmp_traj_name)
         self.assertEqual(out["model_devi"], work_dir / lmp_model_devi_name)
         # check call
-        models = ["model.%03d.pb"%i for i in range(len(self.models))]
+        models = ["models/path/model_%d.pb"%i for i in range(len(self.models))]
         calls = [
             call(
                 " ; ".join(
@@ -132,7 +132,7 @@ class TestRunNvNMD(unittest.TestCase):
                 )
             )
         # check call
-        models = ["model.%03d.pb"%i for i in range(len(self.models))]
+        models = ["models/path/model_%d.pb"%i for i in range(len(self.models))]
         calls = [
             call(
                 " ; ".join(
