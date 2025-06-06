@@ -87,9 +87,23 @@ class TestRunNvNMD(unittest.TestCase):
         self.assertEqual(out["traj"], work_dir / lmp_traj_name)
         self.assertEqual(out["model_devi"], work_dir / lmp_model_devi_name)
         # check call
+        models = ["model.%03d.pb" for i in range(len(self.models))]
         calls = [
             call(
-                " ".join(["mylmp", "-i", lmp_input_name, "-log", lmp_log_name]),
+                " ; ".join(
+                    ["  ".join
+                    (
+                        [
+                            "cp", model_name, "model.pb", "&&",
+                            "mylmp", "-i", lmp_input_name,
+                            "-log", lmp_log_name,
+                            "-v", "rerun", "%d"%i, "&&", 
+                            "cp", lmp_traj_name, lmp_traj_name+".%d"%i
+                        ]
+                    )
+                    for i, model_name in enumerate(models)
+                    ]
+                ),
                 shell=True,
             ),
         ]

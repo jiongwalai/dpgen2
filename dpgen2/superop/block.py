@@ -58,6 +58,9 @@ from .prep_run_diffcsp import (
 from .prep_run_dp_train import (
     PrepRunDPTrain,
 )
+from .prep_run_nvnmd_train import (
+    PrepRunNvNMDTrain,
+)
 from .prep_run_fp import (
     PrepRunFp,
 )
@@ -88,7 +91,7 @@ class ConcurrentLearningBlock(Steps):
     def __init__(
         self,
         name: str,
-        prep_run_dp_train_op: PrepRunDPTrain,
+        prep_run_dp_train_op: Union[PrepRunDPTrain, PrepRunNvNMDTrain],
         prep_run_explore_op: Union[PrepRunLmp, PrepRunCaly, PrepRunDiffCSP],
         select_confs_op: Type[OP],
         prep_run_fp_op: PrepRunFp,
