@@ -410,8 +410,8 @@ def merge_pimd_files():
                     f.write(f2.read())
 
 def calc_model_devi(
-    traj_files: list[str],
-    fname: str = "model_devi.out",
+    traj_files,
+    fname = "model_devi.out",
 ):
   
     trajectories = []
