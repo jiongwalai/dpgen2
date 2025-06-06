@@ -67,7 +67,7 @@ class TestRunNvNMD(unittest.TestCase):
         if Path(self.task_name).is_dir():
             shutil.rmtree(self.task_name)
 
-    @patch("dpgen2.op.run_lmp.run_command")
+    @patch("dpgen2.op.run_nvnmd.run_command")
     def test_success(self, mocked_run):
         mocked_run.side_effect = [(0, "foo\n", "")]
         op = RunNvNMD()
@@ -102,7 +102,7 @@ class TestRunNvNMD(unittest.TestCase):
                 (work_dir / (model_name_pattern % ii)).read_text(), f"model{ii}"
             )
 
-    @patch("dpgen2.op.run_lmp.run_command")
+    @patch("dpgen2.op.run_nvnmd.run_command")
     def test_error(self, mocked_run):
         mocked_run.side_effect = [(1, "foo\n", "")]
         op = RunNvNMD()
@@ -186,7 +186,7 @@ run             3000 upto
         if Path(self.task_name).is_dir():
             shutil.rmtree(self.task_name)
 
-    @patch("dpgen2.op.run_lmp.run_command")
+    @patch("dpgen2.op.run_nvnmd.run_command")
     def test_success(self, mocked_run):
         mocked_run.side_effect = [(0, "foo\n", "")]
         op = RunNvNMD()
