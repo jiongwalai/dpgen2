@@ -189,10 +189,12 @@ class RunNvNMD(OP):
                 [
                     " ".join(
                         [
-                            "cp", model_name, "model.pb", "&&",
+                            "cp", str(model_name), "model.pb", 
+                            "&&",
                             "mylmp", "-i", lmp_input_name,
                             "-log", lmp_log_name,
-                            "-v", "rerun", "%d"%i, "&&", 
+                            "-v", "rerun", "%d"%i, 
+                            "&&", 
                             "cp", lmp_traj_name, lmp_traj_name+".%d"%i
                         ]
                     )
