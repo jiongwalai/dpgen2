@@ -212,7 +212,7 @@ def make_concurrent_learning_op(
         prep_run_explore_op = PrepRunLmp(
             "prep-run-nvnmd",
             PrepLmp,
-            RunNvNMD,  
+            RunNvNMD,
             prep_config=prep_explore_config,
             run_config=run_explore_config,
             upload_python_packages=upload_python_packages,

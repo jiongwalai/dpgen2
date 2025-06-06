@@ -230,8 +230,9 @@ class RunNvNMD(OP):
                     with open("job.json", "w") as f:
                         json.dump(data, f, indent=4)
             merge_pimd_files()
-            
-            calc_model_devi([lmp_traj_name+f".{i}" for i in range(len(model_names))])
+           
+            if os.path.exists(lmp_traj_name):
+                calc_model_devi([lmp_traj_name+f".{i}" for i in range(len(model_names))])
 
         ret_dict = {
             "log": work_dir / lmp_log_name,
