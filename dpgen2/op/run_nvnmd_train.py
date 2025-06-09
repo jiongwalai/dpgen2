@@ -61,6 +61,7 @@ def _make_train_command(
         checkpoint = "nvnmd_cnn/model.ckpt"
     else:
         checkpoint = None
+        
     # case of restart
     if checkpoint is not None:
         command = dp_command + ["train-nvnmd", "--restart", checkpoint, train_script_name] 
@@ -70,7 +71,15 @@ def _make_train_command(
     assert checkpoint is None
     case_init_model = do_init_model
     if case_init_model:
-        init_flag = "--init-frz-model"
+        
+        if isinstance(init_model, list):    # initialize from model.ckpt
+            for i in init_model:    
+                shutil.copy(i, "./")
+            init_model = "model.ckpt"
+            init_flag = "--init-imodel"
+        else:                               # initialize from frozen model
+            init_flag = "--init-frz-model"
+            
         command = dp_command + [
                 "train-nvnmd",
                 init_flag,
@@ -110,6 +119,9 @@ class RunNvNMDTrain(OP):
                 ),
                 "task_path": Artifact(Path),
                 "init_model": Artifact(Path, optional=True),
+                "init_model_ckpt_meta": Artifact(Path, optional=True),
+                "init_model_ckpt_data": Artifact(Path, optional=True),
+                "init_model_ckpt_index": Artifact(Path, optional=True),
                 "init_data": Artifact(NestedDict[Path]),
                 "iter_data": Artifact(List[Path]),
                 "valid_data": Artifact(NestedDict[Path], optional=True),
@@ -124,6 +136,9 @@ class RunNvNMDTrain(OP):
                 "script": Artifact(Path),
                 "cnn_model": Artifact(Path),
                 "qnn_model": Artifact(Path),
+                "model_ckpt_data": Artifact(Path),
+                "model_ckpt_meta": Artifact(Path),
+                "model_ckpt_index": Artifact(Path),
                 "lcurve": Artifact(Path),
                 "log": Artifact(Path),
             }
@@ -145,8 +160,13 @@ class RunNvNMDTrain(OP):
             - `task_name`: (`str`) The name of training task.
             - `task_path`: (`Artifact(Path)`) The path that contains all input files prepareed by `PrepDPTrain`.
             - `init_model`: (`Artifact(Path)`) A frozen model to initialize the training.
+            - `init_model_ckpt_meta`: (`Artifact(Path)`, optional) The meta file of the frozen model.
+            - `init_model_ckpt_data`: (`Artifact(Path)`, optional) The data file of the frozen model.
+            - `init_model_ckpt_index`: (`Artifact(Path)`, optional) The index file of the frozen model.
             - `init_data`: (`Artifact(NestedDict[Path])`) Initial training data.
             - `iter_data`: (`Artifact(List[Path])`) Training data generated in the DPGEN iterations.
+            - `valid_data`: (`Artifact(NestedDict[Path])`, optional) Validation data.
+            - `optional_files`: (`Artifact(List[Path])`, optional) Optional files to be copied to the working directory.
 
         Returns
         -------
@@ -155,6 +175,9 @@ class RunNvNMDTrain(OP):
             - `script`: (`Artifact(Path)`) The training script.
             - `cnn_model`: (`Artifact(Path)`) The trained continuous frozen model.
             - `qnn_model`: (`Artifact(Path)`) The trained quantized  frozen model.
+            - `model_ckpt_data`: (`Artifact(Path)`) The data file of the trained model.
+            - `model_ckpt_meta`: (`Artifact(Path)`) The meta file of the trained model.
+            - `model_ckpt_index`: (`Artifact(Path)`) The index file of the trained model.
             - `lcurve`: (`Artifact(Path)`) The learning curve file.
             - `log`: (`Artifact(Path)`) The log file of training.
 
@@ -171,6 +194,9 @@ class RunNvNMDTrain(OP):
         task_name = ip["task_name"]
         task_path = ip["task_path"]
         init_model = ip["init_model"]
+        init_model_ckpt_data  = ip["init_model_ckpt_data"]
+        init_model_ckpt_meta  = ip["init_model_ckpt_meta"]
+        init_model_ckpt_index  = ip["init_model_ckpt_index"]
         init_data = ip["init_data"]
         iter_data = ip["iter_data"]
         valid_data = ip["valid_data"]
@@ -189,9 +215,10 @@ class RunNvNMDTrain(OP):
             major_version = "2"
 
         # auto prob style
+        init_model_ckpt = [init_model_ckpt_meta, init_model_ckpt_data, init_model_ckpt_index]
         do_init_model = RunNvNMDTrain.decide_init_model(
             config,
-            init_model,
+            init_model_ckpt if init_model_ckpt_data is not None else init_model,
             init_data,
             iter_data,
             mixed_type=mixed_type,
@@ -244,7 +271,7 @@ class RunNvNMDTrain(OP):
                 dp_command,
                 train_cnn_script_name,
                 do_init_model,
-                init_model,
+                init_model_ckpt if init_model_ckpt_data is not None else init_model,
                 train_args = "-s s1",
             )
 
@@ -274,10 +301,16 @@ class RunNvNMDTrain(OP):
                 fplog.write(err)
                 
                 cnn_model_file = "nvnmd_cnn/frozen_model.pb"
+                model_ckpt_data_file = "nvnmd_cnn/model.ckpt.data-00000-of-00001"
+                model_ckpt_index_file = "nvnmd_cnn/model.ckpt.index"
+                model_ckpt_meta_file = "nvnmd_cnn/model.ckpt.meta"
                 lcurve_file = "nvnmd_cnn/lcurve.out"
             
             else:
                 cnn_model_file = init_model
+                model_ckpt_data_file = ""
+                model_ckpt_index_file = ""
+                model_ckpt_meta_file = ""
                 lcurve_file = "nvnmd_qnn/lcurve.out"
                 
             # train qnn model
@@ -285,7 +318,7 @@ class RunNvNMDTrain(OP):
                 dp_command,
                 train_qnn_script_name,
                 do_init_model,
-                init_model,
+                init_model_ckpt if init_model_ckpt_data is not None else init_model,
                 train_args = "-s s2",
             )
 
@@ -323,6 +356,9 @@ class RunNvNMDTrain(OP):
                 "script": work_dir / train_cnn_script_name,
                 "cnn_model": work_dir / cnn_model_file,
                 "qnn_model": work_dir / qnn_model_file,
+                "model_ckpt_data": work_dir / model_ckpt_data_file,
+                "model_ckpt_meta": work_dir / model_ckpt_meta_file,
+                "model_ckpt_index": work_dir / model_ckpt_index_file,
                 "lcurve": work_dir / lcurve_file,
                 "log": work_dir / "train.log",
             }

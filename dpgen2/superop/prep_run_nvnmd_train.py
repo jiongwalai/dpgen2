@@ -79,6 +79,9 @@ class PrepRunNvNMDTrain(Steps):
         }
         self._input_artifacts = {
             "init_models": InputArtifact(optional=True),
+            "init_models_ckpt_data": InputArtifact(optional=True),
+            "init_models_ckpt_index": InputArtifact(optional=True),
+            "init_models_ckpt_meta": InputArtifact(optional=True),
             "init_data": InputArtifact(),
             "iter_data": InputArtifact(),
         }
@@ -88,6 +91,10 @@ class PrepRunNvNMDTrain(Steps):
         self._output_artifacts = {
             "scripts": OutputArtifact(),
             "models": OutputArtifact(),
+            "nvnmodels": OutputArtifact(),
+            "models_ckpt_meta": OutputArtifact(optional=True),
+            "models_ckpt_data": OutputArtifact(optional=True),
+            "models_ckpt_index": OutputArtifact(optional=True),
             "logs": OutputArtifact(),
             "lcurves": OutputArtifact(),
         }
@@ -191,8 +198,8 @@ def _prep_run_nvnmd_train(
             slices=Slices(
                 "int('{{item}}')",
                 input_parameter=["task_name"],
-                input_artifact=["task_path", "init_model"],
-                output_artifact=["cnn_model", "qnn_model", "lcurve", "log", "script"],
+                input_artifact=["task_path", "init_model", "init_model_ckpt_meta", "init_model_ckpt_data", "init_model_ckpt_index"],
+                output_artifact=["cnn_model", "qnn_model", "model_ckpt_data", "model_ckpt_meta", "model_ckpt_index", "lcurve", "log", "script"],
                 **template_slice_config,
             ),
             python_packages=upload_python_packages,
@@ -208,6 +215,9 @@ def _prep_run_nvnmd_train(
         artifacts={
             "task_path": prep_train.outputs.artifacts["task_paths"],
             "init_model": train_steps.inputs.artifacts["init_models"],
+            "init_model_ckpt_meta":  train_steps.inputs.artifacts["init_models_ckpt_meta"],
+            "init_model_ckpt_data":  train_steps.inputs.artifacts["init_models_ckpt_data"],
+            "init_model_ckpt_index": train_steps.inputs.artifacts["init_models_ckpt_index"],
             "init_data": train_steps.inputs.artifacts["init_data"],
             "iter_data": train_steps.inputs.artifacts["iter_data"],
             "valid_data": valid_data,
@@ -233,10 +243,11 @@ def _prep_run_nvnmd_train(
         "script"
     ]
     train_steps.outputs.artifacts["models"]._from = run_train.outputs.artifacts["cnn_model"]
-    #train_steps.outputs.artifacts["nvnmodels"]._from = run_train.outputs.artifacts["cnn_model"]
+    train_steps.outputs.artifacts["nvnmodels"]._from = run_train.outputs.artifacts["qnn_model"]
+    train_steps.outputs.artifacts["models_ckpt_meta"]._from = run_train.outputs.artifacts["model_ckpt_meta"]
+    train_steps.outputs.artifacts["models_ckpt_data"]._from = run_train.outputs.artifacts["model_ckpt_data"]
+    train_steps.outputs.artifacts["models_ckpt_index"]._from = run_train.outputs.artifacts["model_ckpt_index"]
     train_steps.outputs.artifacts["logs"]._from = run_train.outputs.artifacts["log"]
-    train_steps.outputs.artifacts["lcurves"]._from = run_train.outputs.artifacts[
-        "lcurve"
-    ]
+    train_steps.outputs.artifacts["lcurves"]._from = run_train.outputs.artifacts["lcurve"]
 
     return train_steps

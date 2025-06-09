@@ -699,6 +699,9 @@ def workflow_concurrent_learning(
         },
         artifacts={
             "init_models": init_models,
+            "init_models_ckpt_meta": None,
+            "init_models_ckpt_index": None,
+            "init_models_ckpt_data": None,
             "init_data": init_data,
             "iter_data": iter_data,
         },
