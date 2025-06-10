@@ -79,6 +79,9 @@ class TestRunNvNMDTrain(unittest.TestCase):
         self.init_data = sorted(list(self.init_data))
 
         self.init_model = Path("bar.pb")
+        self.init_model_ckpt_meta = Path("model.ckpt.meta")
+        self.init_model_ckpt_data = Path("model.ckpt.data")
+        self.init_model_ckpt_index = Path("model.ckpt.index")
 
         self.config = {
             "init_model_policy": "no",
@@ -407,6 +410,9 @@ class TestRunNvNMDTrain(unittest.TestCase):
                     "task_name": task_name,
                     "task_path": Path(task_path),
                     "init_model": Path(self.init_model),
+                    "init_model_ckpt_meta": Path(self.init_model_ckpt_meta),
+                    "init_model_ckpt_data": Path(self.init_model_ckpt_data),
+                    "init_model_ckpt_index": Path(self.init_model_ckpt_index),
                     "init_data": [Path(ii) for ii in self.init_data],
                     "iter_data": [Path(ii) for ii in self.iter_data],
                 }
@@ -415,6 +421,9 @@ class TestRunNvNMDTrain(unittest.TestCase):
         self.assertEqual(out["script"], work_dir / train_cnn_script_name)
         self.assertEqual(out["cnn_model"], work_dir / "nvnmd_cnn/frozen_model.pb")
         self.assertEqual(out["qnn_model"], work_dir / "nvnmd_qnn/model.pb")
+        self.assertEqual(out["model_ckpt_data"], work_dir / "nvnmd_cnn/model.ckpt.data-00000-of-00001")
+        self.assertEqual(out["model_ckpt_meta"], work_dir / "nvnmd_cnn/model.ckpt.meta")
+        self.assertEqual(out["model_ckpt_index"], work_dir / "nvnmd_cnn/model.ckpt.index")
         self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
         self.assertEqual(out["log"], work_dir / "train.log")
 
@@ -461,6 +470,9 @@ class TestRunNvNMDTrain(unittest.TestCase):
                     "task_name": task_name,
                     "task_path": Path(task_path),
                     "init_model": Path(self.init_model),
+                    "init_model_ckpt_meta": Path(self.init_model_ckpt_meta),
+                    "init_model_ckpt_data": Path(self.init_model_ckpt_data),
+                    "init_model_ckpt_index": Path(self.init_model_ckpt_index),
                     "init_data": [Path(ii) for ii in self.init_data],
                     "iter_data": [Path(ii) for ii in self.iter_data],
                 }
@@ -469,6 +481,9 @@ class TestRunNvNMDTrain(unittest.TestCase):
         self.assertEqual(out["script"], work_dir / train_cnn_script_name)
         self.assertEqual(out["cnn_model"], work_dir / "nvnmd_cnn/frozen_model.pb")
         self.assertEqual(out["qnn_model"], work_dir / "nvnmd_qnn/model.pb")
+        self.assertEqual(out["model_ckpt_data"], work_dir / "nvnmd_cnn/model.ckpt.data-00000-of-00001")
+        self.assertEqual(out["model_ckpt_meta"], work_dir / "nvnmd_cnn/model.ckpt.meta")
+        self.assertEqual(out["model_ckpt_index"], work_dir / "nvnmd_cnn/model.ckpt.index")
         self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
         self.assertEqual(out["log"], work_dir / "train.log")
 
@@ -515,6 +530,9 @@ class TestRunNvNMDTrain(unittest.TestCase):
                     "task_name": task_name,
                     "task_path": Path(task_path),
                     "init_model": Path(self.init_model),
+                    "init_model_ckpt_meta": Path(self.init_model_ckpt_meta),
+                    "init_model_ckpt_data": Path(self.init_model_ckpt_data),
+                    "init_model_ckpt_index": Path(self.init_model_ckpt_index),
                     "init_data": [Path(ii) for ii in self.init_data],
                     "iter_data": [Path(ii) for ii in self.iter_data],
                 }
@@ -523,6 +541,9 @@ class TestRunNvNMDTrain(unittest.TestCase):
         self.assertEqual(out["script"], work_dir / train_cnn_script_name)
         self.assertEqual(out["cnn_model"], work_dir / "nvnmd_cnn/frozen_model.pb")
         self.assertEqual(out["qnn_model"], work_dir / "nvnmd_qnn/model.pb")
+        self.assertEqual(out["model_ckpt_data"], work_dir / "nvnmd_cnn/model.ckpt.data-00000-of-00001")
+        self.assertEqual(out["model_ckpt_meta"], work_dir / "nvnmd_cnn/model.ckpt.meta")
+        self.assertEqual(out["model_ckpt_index"], work_dir / "nvnmd_cnn/model.ckpt.index")
         self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
         self.assertEqual(out["log"], work_dir / "train.log")
 
@@ -531,8 +552,8 @@ class TestRunNvNMDTrain(unittest.TestCase):
                 [
                     "dp",
                     "train-nvnmd",
-                    "--init-frz-model",
-                    str(self.init_model),
+                    "--init-model",
+                    "model.ckpt",
                     train_cnn_script_name,
                     "-s",
                     "s1"
@@ -579,6 +600,9 @@ class TestRunNvNMDTrain(unittest.TestCase):
                         "task_name": task_name,
                         "task_path": Path(task_path),
                         "init_model": Path(self.init_model),
+                        "init_model_ckpt_meta": Path(self.init_model_ckpt_meta),
+                        "init_model_ckpt_data": Path(self.init_model_ckpt_data),
+                        "init_model_ckpt_index": Path(self.init_model_ckpt_index),
                         "init_data": [Path(ii) for ii in self.init_data],
                         "iter_data": [Path(ii) for ii in self.iter_data],
                     }
@@ -610,6 +634,9 @@ class TestRunNvNMDTrainNullIterData(unittest.TestCase):
         self.init_data = sorted(list(self.init_data))
 
         self.init_model = Path("bar.pb")
+        self.init_model_ckpt_meta = Path("model.ckpt.meta")
+        self.init_model_ckpt_data = Path("model.ckpt.data")
+        self.init_model_ckpt_index = Path("model.ckpt.index")
 
         self.config = {
             "init_model_policy": "no",
@@ -709,6 +736,9 @@ class TestRunNvNMDTrainNullIterData(unittest.TestCase):
                     "task_name": task_name,
                     "task_path": Path(task_path),
                     "init_model": Path(self.init_model),
+                    "init_model_ckpt_meta": Path(self.init_model_ckpt_meta),
+                    "init_model_ckpt_data": Path(self.init_model_ckpt_data),
+                    "init_model_ckpt_index": Path(self.init_model_ckpt_index),
                     "init_data": [Path(ii) for ii in self.init_data],
                     "iter_data": [empty_data],
                 }
@@ -717,6 +747,9 @@ class TestRunNvNMDTrainNullIterData(unittest.TestCase):
         self.assertEqual(out["script"], work_dir / train_cnn_script_name)
         self.assertEqual(out["cnn_model"], work_dir / "nvnmd_cnn/frozen_model.pb")
         self.assertEqual(out["qnn_model"], work_dir / "nvnmd_qnn/model.pb")
+        self.assertEqual(out["model_ckpt_data"], work_dir / "nvnmd_cnn/model.ckpt.data-00000-of-00001")
+        self.assertEqual(out["model_ckpt_meta"], work_dir / "nvnmd_cnn/model.ckpt.meta")
+        self.assertEqual(out["model_ckpt_index"], work_dir / "nvnmd_cnn/model.ckpt.index")
         self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
         self.assertEqual(out["log"], work_dir / "train.log")
 

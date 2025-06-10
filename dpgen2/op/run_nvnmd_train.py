@@ -73,10 +73,8 @@ def _make_train_command(
     if case_init_model:
         
         if isinstance(init_model, list):    # initialize from model.ckpt
-            for i in init_model:    
-                shutil.copy(i, "./")
             init_model = "model.ckpt"
-            init_flag = "--init-imodel"
+            init_flag = "--init-model"
         else:                               # initialize from frozen model
             init_flag = "--init-frz-model"
             
