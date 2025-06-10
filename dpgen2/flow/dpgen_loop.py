@@ -513,7 +513,7 @@ def _loop(
         _then=block_step.outputs.artifacts["models"],
         _else=next_step.outputs.artifacts["models"],
     )
-    if ( hasattr(block_step.outputs.artifacts["models_ckpt_meta"], "local_path") and
+    if ( hasattr(block_step.outputs.artifacts["models_ckpt_meta"], "local_path") or
          hasattr(next_step.outputs.artifacts["models_ckpt_meta"], "local_path")
     ): 
         steps.outputs.artifacts["models_ckpt_meta"].from_expression = if_expression(
@@ -521,7 +521,7 @@ def _loop(
             _then=block_step.outputs.artifacts["models_ckpt_meta"],
             _else=next_step.outputs.artifacts["models_ckpt_meta"],
         )
-    if ( hasattr(block_step.outputs.artifacts["models_ckpt_data"], "local_path") and
+    if ( hasattr(block_step.outputs.artifacts["models_ckpt_data"], "local_path") or
          hasattr(next_step.outputs.artifacts["models_ckpt_data"], "local_path")
     ): 
         steps.outputs.artifacts["models_ckpt_data"].from_expression = if_expression(
@@ -529,7 +529,7 @@ def _loop(
             _then=block_step.outputs.artifacts["models_ckpt_data"],
             _else=next_step.outputs.artifacts["models_ckpt_data"],
         )
-    if ( hasattr(block_step.outputs.artifacts["models_ckpt_index"], "local_path") and
+    if ( hasattr(block_step.outputs.artifacts["models_ckpt_index"], "local_path") or 
          hasattr(next_step.outputs.artifacts["models_ckpt_index"], "local_path")
     ): 
         steps.outputs.artifacts["models_ckpt_index"].from_expression = if_expression(
