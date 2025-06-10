@@ -55,6 +55,7 @@ from mocked_ops import (
     MockedRunNvNMDTrainNoneInitModel,
     make_mocked_init_data,
     make_mocked_init_models,
+    make_mocked_init_models_ckpt,
     mocked_numb_models,
     mocked_template_script,
 )
@@ -77,7 +78,7 @@ default_config = normalize_step_dict(
 
 
 def _check_log(
-    tcase, fname, path, script, init_model, init_data, iter_data, only_check_name=False
+    tcase, fname, path, script, init_model, init_model_ckpt, init_data, iter_data, only_check_name=False
 ):
     with open(fname) as fp:
         lines_ = fp.read().strip().split("\n")
@@ -94,9 +95,21 @@ def _check_log(
         lines[0].split(" "),
         ["init_model", str(revised_fname(Path(path) / init_model)), "OK"],
     )
+    tcase.assertEqual(
+        lines[1].split(" "),
+        ["init_model_ckpt_meta", str(revised_fname(Path(path) / init_model_ckpt / "model.ckpt.meta")), "OK"],
+    ) 
+    tcase.assertEqual(
+        lines[2].split(" "),
+        ["init_model_ckpt_data", str(revised_fname(Path(path) / init_model_ckpt / "model.ckpt.data")), "OK"],
+    )
+    tcase.assertEqual(
+        lines[3].split(" "),
+        ["init_model_ckpt_index", str(revised_fname(Path(path) / init_model_ckpt / "model.ckpt.index")), "OK"],
+    )
     for ii in range(2):
         tcase.assertEqual(
-            lines[1 + ii].split(" "),
+            lines[4 + ii].split(" "),
             [
                 "data",
                 str(revised_fname(Path(path) / sorted(list(init_data))[ii])),
@@ -105,7 +118,7 @@ def _check_log(
         )
     for ii in range(2):
         tcase.assertEqual(
-            lines[3 + ii].split(" "),
+            lines[6 + ii].split(" "),
             [
                 "data",
                 str(revised_fname(Path(path) / sorted(list(iter_data))[ii])),
@@ -113,7 +126,7 @@ def _check_log(
             ],
         )
     tcase.assertEqual(
-        lines[5].split(" "), ["script", str(revised_fname(Path(path) / script)), "OK"]
+        lines[8].split(" "), ["script", str(revised_fname(Path(path) / script)), "OK"]
     )
 
 
@@ -128,6 +141,21 @@ def _check_model(
     with open(Path(path) / model) as fp:
         mlines = fp.read().strip().split("\n")
     tcase.assertEqual(flines[0], "read from init model: ")
+    for ii in range(len(mlines)):
+        tcase.assertEqual(flines[ii + 1], mlines[ii])
+
+
+def _check_model_ckpt(
+    tcase,
+    fname,
+    path,
+    model,
+):
+    with open(fname) as fp:
+        flines = fp.read().strip().split("\n")
+    with open(Path(path) / model) as fp:
+        mlines = fp.read().strip().split("\n")
+    tcase.assertEqual(flines[0], "read from init model ckpt: ")
     for ii in range(len(mlines)):
         tcase.assertEqual(flines[ii + 1], mlines[ii])
 
@@ -152,6 +180,7 @@ def check_run_train_nvnmd_output(
     work_dir,
     script,
     init_model,
+    init_model_ckpt,
     init_data,
     iter_data,
     only_check_name=False,
@@ -164,12 +193,17 @@ def check_run_train_nvnmd_output(
         cwd,
         script,
         init_model,
+        init_model_ckpt,
         init_data,
         iter_data,
         only_check_name=only_check_name,
     )
-    _check_model(tcase, "frozen_model.pb", cwd, init_model)
-    _check_lcurve(tcase, "lcurve.out", cwd, script)
+    _check_model(tcase, "nvnmd_cnn/frozen_model.pb", cwd, init_model)
+    _check_model(tcase, "nvnmd_qnn/model.pb", cwd, init_model)
+    _check_model_ckpt(tcase, "nvnmd_cnn/model.ckpt.meta", cwd, init_model_ckpt / "model.ckpt.meta")
+    _check_model_ckpt(tcase, "nvnmd_cnn/model.ckpt.data-00000-of-00001", cwd, init_model_ckpt / "model.ckpt.data")
+    _check_model_ckpt(tcase, "nvnmd_cnn/model.ckpt.index", cwd, init_model_ckpt / "model.ckpt.index")
+    _check_lcurve(tcase, "nvnmd_cnn/lcurve.out", cwd, script)
     os.chdir(cwd)
 
 
@@ -208,6 +242,7 @@ class TestMockedRunNvNMDTrain(unittest.TestCase):
         self.numb_models = mocked_numb_models
 
         self.init_models = make_mocked_init_models(self.numb_models)
+        self.init_models_ckpt = make_mocked_init_models_ckpt(self.numb_models)
 
         tmp_init_data = make_mocked_init_data()
         self.init_data = tmp_init_data
@@ -240,6 +275,9 @@ class TestMockedRunNvNMDTrain(unittest.TestCase):
         for ii in self.init_models:
             if Path(ii).exists():
                 os.remove(ii)
+        for ii in self.init_models_ckpt:
+            if Path(ii).exists():
+                shutil.rmtree(ii)
 
     def test(self):
         for ii in range(3):
@@ -250,6 +288,9 @@ class TestMockedRunNvNMDTrain(unittest.TestCase):
                     "task_name": self.task_names[ii],
                     "task_path": self.task_paths[ii],
                     "init_model": self.init_models[ii],
+                    "init_model_ckpt_meta": self.init_models_ckpt[ii] / "model.ckpt.meta",
+                    "init_model_ckpt_data": self.init_models_ckpt[ii] / "model.ckpt.data",
+                    "init_model_ckpt_index": self.init_models_ckpt[ii] / "model.ckpt.index",
                     "init_data": self.init_data,
                     "iter_data": self.iter_data,
                 }
@@ -257,15 +298,19 @@ class TestMockedRunNvNMDTrain(unittest.TestCase):
             op = run.execute(ip)
             self.assertEqual(op["script"], Path(train_task_pattern % ii) / "input.json")
             self.assertTrue(op["script"].is_file())
-            self.assertEqual(op["cnn_model"], Path(train_task_pattern % ii) / "frozen_model.pb")
-            self.assertEqual(op["qnn_model"], Path(train_task_pattern % ii) / "model.pb")
+            self.assertEqual(op["cnn_model"], Path(train_task_pattern % ii) / "nvnmd_cnn" / "frozen_model.pb")
+            self.assertEqual(op["qnn_model"], Path(train_task_pattern % ii) / "nvnmd_qnn" / "model.pb")
+            self.assertEqual(op["model_ckpt_data"], Path(train_task_pattern % ii) / "nvnmd_cnn" / "model.ckpt.data-00000-of-00001")
+            self.assertEqual(op["model_ckpt_meta"], Path(train_task_pattern % ii) / "nvnmd_cnn" /"model.ckpt.meta")
+            self.assertEqual(op["model_ckpt_index"], Path(train_task_pattern % ii) / "nvnmd_cnn" /"model.ckpt.index")
             self.assertEqual(op["log"], Path(train_task_pattern % ii) / "log")
-            self.assertEqual(op["lcurve"], Path(train_task_pattern % ii) / "lcurve.out")
+            self.assertEqual(op["lcurve"], Path(train_task_pattern % ii) / "nvnmd_cnn" / "lcurve.out")
             check_run_train_nvnmd_output(
                 self,
                 self.task_names[ii],
                 self.train_scripts[ii],
                 self.init_models[ii],
+                self.init_models_ckpt[ii],
                 self.init_data,
                 self.iter_data,
             )
@@ -278,7 +323,13 @@ class TestTrainNvNMD(unittest.TestCase):
         tmp_models = make_mocked_init_models(self.numb_models)
         self.init_models = upload_artifact(tmp_models)
         self.str_init_models = tmp_models
-
+        
+        tmp_models_ckpt = make_mocked_init_models_ckpt(self.numb_models)
+        self.init_models_ckpt_meta = upload_artifact([dir / "model.ckpt.meta" for dir in tmp_models_ckpt])
+        self.init_models_ckpt_data = upload_artifact([dir / "model.ckpt.data" for dir in tmp_models_ckpt])
+        self.init_models_ckpt_index = upload_artifact([dir / "model.ckpt.index" for dir in tmp_models_ckpt])
+        self.str_init_models_ckpt = tmp_models_ckpt
+        
         tmp_init_data = make_mocked_init_data()
         self.init_data = upload_artifact(tmp_init_data)
         self.path_init_data = tmp_init_data
@@ -308,6 +359,9 @@ class TestTrainNvNMD(unittest.TestCase):
         for ii in self.str_init_models:
             if Path(ii).exists():
                 os.remove(ii)
+        for ii in self.str_init_models_ckpt:
+            if Path(ii).exists():
+                shutil.rmtree(ii)
 
     def test_train(self):
         steps = PrepRunNvNMDTrain(
@@ -328,6 +382,9 @@ class TestTrainNvNMD(unittest.TestCase):
             },
             artifacts={
                 "init_models": self.init_models,
+                "init_models_ckpt_meta": self.init_models_ckpt_meta,
+                "init_models_ckpt_data": self.init_models_ckpt_data,
+                "init_models_ckpt_index": self.init_models_ckpt_index,
                 "init_data": self.init_data,
                 "iter_data": self.iter_data,
             },
@@ -345,6 +402,10 @@ class TestTrainNvNMD(unittest.TestCase):
 
         download_artifact(step.outputs.artifacts["scripts"])
         download_artifact(step.outputs.artifacts["models"])
+        download_artifact(step.outputs.artifacts["models_ckpt_meta"])
+        download_artifact(step.outputs.artifacts["models_ckpt_data"])
+        download_artifact(step.outputs.artifacts["models_ckpt_index"])
+        download_artifact(step.outputs.artifacts["nvnmodels"])
         download_artifact(step.outputs.artifacts["logs"])
         download_artifact(step.outputs.artifacts["lcurves"])
 
@@ -354,6 +415,7 @@ class TestTrainNvNMD(unittest.TestCase):
                 self.task_names[ii],
                 self.train_scripts[ii],
                 self.str_init_models[ii],
+                self.str_init_models_ckpt[ii],
                 self.path_init_data,
                 self.path_iter_data,
                 only_check_name=True,
@@ -378,6 +440,9 @@ class TestTrainNvNMD(unittest.TestCase):
             },
             artifacts={
                 "init_models": None,
+                "init_models_ckpt_meta": None,
+                "init_models_ckpt_data": None,
+                "init_models_ckpt_index": None,
                 "init_data": self.init_data,
                 "iter_data": self.iter_data,
             },

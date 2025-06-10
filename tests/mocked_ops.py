@@ -41,6 +41,10 @@ from dpgen2.constants import (
     lmp_task_pattern,
     lmp_traj_name,
     model_name_pattern,
+    model_ckpt_pattern,
+    model_ckpt_meta_pattern,
+    model_ckpt_data_pattern,
+    model_ckpt_index_pattern,
     train_log_name,
     train_script_name,
     train_task_pattern,
@@ -119,6 +123,21 @@ def make_mocked_init_models(numb_models):
         ff.write_text(f"This is init model {ii}")
         tmp_models.append(ff)
     return tmp_models
+
+
+def make_mocked_init_models_ckpt(numb_models):
+    tmp_models_ckpt = []
+    for ii in range(numb_models):
+        dir = Path(model_ckpt_pattern %ii)
+        dir.mkdir(exist_ok=True, parents=True)
+        ff_meta = Path(model_ckpt_meta_pattern % ii)
+        ff_meta.write_text(f"This is init model ckpt meta {ii}")
+        ff_data = Path(model_ckpt_data_pattern % ii)
+        ff_data.write_text(f"This is init model ckpt data {ii}")
+        ff_index = Path(model_ckpt_index_pattern % ii)
+        ff_index.write_text(f"This is init model ckpt index {ii}")
+        tmp_models_ckpt.append(dir)
+    return tmp_models_ckpt
 
 
 def make_mocked_init_data():
@@ -400,12 +419,18 @@ class MockedRunNvNMDTrain(RunNvNMDTrain):
         work_dir = Path(ip["task_name"])
         script = ip["task_path"] / "input.json"
         init_model = Path(ip["init_model"])
+        init_model_ckpt_meta = Path(ip["init_model_ckpt_meta"])
+        init_model_ckpt_data = Path(ip["init_model_ckpt_data"])
+        init_model_ckpt_index = Path(ip["init_model_ckpt_index"])
         init_data = ip["init_data"]
         iter_data = ip["iter_data"]
 
         assert script.is_file()
         assert ip["task_path"].is_dir()
         assert init_model.is_file()
+        assert init_model_ckpt_meta.is_file()
+        assert init_model_ckpt_data.is_file()
+        assert init_model_ckpt_index.is_file()
         assert len(init_data) == 2
         assert re.match("task.[0-9][0-9][0-9][0-9]", ip["task_name"])
         task_id = int(ip["task_name"].split(".")[1])
@@ -421,6 +446,9 @@ class MockedRunNvNMDTrain(RunNvNMDTrain):
         script = Path(script).resolve()
         init_model = init_model.resolve()
         init_model_str = str(init_model)
+        init_model_ckpt_meta = init_model_ckpt_meta.resolve()
+        init_model_ckpt_data = init_model_ckpt_data.resolve()
+        init_model_ckpt_index = init_model_ckpt_index.resolve()
         init_data = [ii.resolve() for ii in init_data]
         iter_data = [ii.resolve() for ii in iter_data]
         init_data_str = [str(ii) for ii in init_data]
@@ -448,14 +476,29 @@ class MockedRunNvNMDTrain(RunNvNMDTrain):
             )
 
             copyfile(script, oscript)
-        cnn_model = Path("frozen_model.pb")
-        qnn_model = Path("model.pb")
-        lcurve = Path("lcurve.out")
+            
+        cnn_dir = Path("nvnmd_cnn")
+        qnn_dir = Path("nvnmd_qnn")
+        cnn_model = cnn_dir / Path("frozen_model.pb")
+        qnn_model = qnn_dir / Path("model.pb")
+        model_ckpt_meta_file  = cnn_dir / Path("model.ckpt.meta")
+        model_ckpt_data_file  = cnn_dir / Path("model.ckpt.data-00000-of-00001")
+        model_ckpt_index_file = cnn_dir / Path("model.ckpt.index")
+        lcurve = cnn_dir / Path("lcurve.out")
         log = Path("log")
 
         assert init_model.exists()
         with log.open("w") as f:
             f.write(f"init_model {str(init_model)} OK\n")
+        assert init_model_ckpt_meta.exists()
+        with log.open("a") as f:
+            f.write(f"init_model_ckpt_meta {str(init_model_ckpt_meta)} OK\n") 
+        assert init_model_ckpt_data.exists()
+        with log.open("a") as f:
+            f.write(f"init_model_ckpt_data {str(init_model_ckpt_data)} OK\n") 
+        assert init_model_ckpt_index.exists()
+        with log.open("a") as f:
+            f.write(f"init_model_ckpt_index {str(init_model_ckpt_index)} OK\n") 
         for ii in jtmp["data"]:
             assert Path(ii).exists()
             assert (ii in init_data_str) or (ii in iter_data_str)
@@ -465,9 +508,21 @@ class MockedRunNvNMDTrain(RunNvNMDTrain):
         with log.open("a") as f:
             f.write(f"script {str(script)} OK\n")
 
+        
+        cnn_dir.mkdir(exist_ok=True, parents=True)
         with cnn_model.open("w") as f:
             f.write("read from init model: \n")
             f.write(init_model.read_text() + "\n")
+        with model_ckpt_meta_file.open("w") as f:
+            f.write("read from init model ckpt: \n")
+            f.write(init_model_ckpt_meta.read_text() + "\n")
+        with model_ckpt_data_file.open("w") as f:
+            f.write("read from init model ckpt: \n")
+            f.write(init_model_ckpt_data.read_text() + "\n")
+        with model_ckpt_index_file.open("w") as f:
+            f.write("read from init model ckpt: \n")
+            f.write(init_model_ckpt_index.read_text() + "\n")
+        qnn_dir.mkdir(exist_ok=True, parents=True)
         with qnn_model.open("w") as f:
             f.write("read from init model: \n")
             f.write(init_model.read_text() + "\n")
@@ -482,6 +537,9 @@ class MockedRunNvNMDTrain(RunNvNMDTrain):
                 "script": work_dir / oscript,
                 "cnn_model": work_dir / cnn_model,
                 "qnn_model": work_dir / qnn_model,
+                "model_ckpt_data": work_dir / model_ckpt_data_file,
+                "model_ckpt_meta": work_dir / model_ckpt_meta_file,
+                "model_ckpt_index": work_dir / model_ckpt_index_file,
                 "lcurve": work_dir / lcurve,
                 "log": work_dir / log,
             }
@@ -558,7 +616,11 @@ class MockedRunNvNMDTrainNoneInitModel(RunNvNMDTrain):
             )
 
             copyfile(script, oscript)
-        model = Path("model.pb")
+        cnn_model = Path("frozen_model.pb")
+        qnn_model = Path("model.pb")
+        model_ckpt_meta_file  = Path("model.ckpt.meta")
+        model_ckpt_data_file  = Path("model.ckpt.data-00000-of-00001")
+        model_ckpt_index_file = Path("model.ckpt.index")
         lcurve = Path("lcurve.out")
         log = Path("log")
 
@@ -571,8 +633,16 @@ class MockedRunNvNMDTrainNoneInitModel(RunNvNMDTrain):
         with log.open("a") as f:
             f.write(f"script {str(script)} OK\n")
 
-        with model.open("w") as f:
+        with cnn_model.open("w") as f:
             f.write("read from init model: \n")
+        with qnn_model.open("w") as f:
+            f.write("read from init model: \n")
+        with model_ckpt_meta_file.open("w") as f:
+            f.write("read from init model ckpt: \n")
+        with model_ckpt_data_file.open("w") as f:
+            f.write("read from init model ckpt: \n")
+        with model_ckpt_index_file.open("w") as f:
+            f.write("read from init model ckpt: \n")
         with lcurve.open("w") as f:
             f.write("read from train_script: \n")
             f.write(script.read_text() + "\n")
@@ -582,8 +652,11 @@ class MockedRunNvNMDTrainNoneInitModel(RunNvNMDTrain):
         return OPIO(
             {
                 "script": work_dir / oscript,
-                "cnn_model": work_dir / model,
-                "qnn_model": work_dir / model,
+                "cnn_model": work_dir / cnn_model,
+                "qnn_model": work_dir / qnn_model,
+                "model_ckpt_data": work_dir / model_ckpt_meta_file,
+                "model_ckpt_meta": work_dir / model_ckpt_meta_file,
+                "model_ckpt_index": work_dir / model_ckpt_meta_file, 
                 "lcurve": work_dir / lcurve,
                 "log": work_dir / log,
             }
