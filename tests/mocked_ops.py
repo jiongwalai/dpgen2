@@ -573,6 +573,12 @@ class MockedRunNvNMDTrainNoneInitModel(RunNvNMDTrain):
         script = ip["task_path"] / "input.json"
         if ip["init_model"] is not None:
             raise FatalError("init model is not None")
+        if ip["init_model_ckpt_meta"] is not None:
+            raise FatalError("init model ckpt meta is not None")
+        if ip["init_model_ckpt_data"] is not None:
+            raise FatalError("init model ckpt data is not None")
+        if ip["init_model_ckpt_index"] is not None:
+            raise FatalError("init model ckpt index is not None")
         init_data = ip["init_data"]
         iter_data = ip["iter_data"]
 
@@ -616,12 +622,15 @@ class MockedRunNvNMDTrainNoneInitModel(RunNvNMDTrain):
             )
 
             copyfile(script, oscript)
-        cnn_model = Path("frozen_model.pb")
-        qnn_model = Path("model.pb")
-        model_ckpt_meta_file  = Path("model.ckpt.meta")
-        model_ckpt_data_file  = Path("model.ckpt.data-00000-of-00001")
-        model_ckpt_index_file = Path("model.ckpt.index")
-        lcurve = Path("lcurve.out")
+        
+        cnn_dir = Path("nvnmd_cnn")
+        qnn_dir = Path("nvnmd_qnn")
+        cnn_model = cnn_dir / Path("frozen_model.pb")
+        qnn_model = qnn_dir / Path("model.pb")
+        model_ckpt_meta_file  = cnn_dir / Path("model.ckpt.meta")
+        model_ckpt_data_file  = cnn_dir / Path("model.ckpt.data-00000-of-00001")
+        model_ckpt_index_file = cnn_dir / Path("model.ckpt.index")
+        lcurve = cnn_dir / Path("lcurve.out")
         log = Path("log")
 
         for ii in jtmp["data"]:
@@ -633,9 +642,8 @@ class MockedRunNvNMDTrainNoneInitModel(RunNvNMDTrain):
         with log.open("a") as f:
             f.write(f"script {str(script)} OK\n")
 
+        cnn_dir.mkdir(exist_ok=True, parents=True)
         with cnn_model.open("w") as f:
-            f.write("read from init model: \n")
-        with qnn_model.open("w") as f:
             f.write("read from init model: \n")
         with model_ckpt_meta_file.open("w") as f:
             f.write("read from init model ckpt: \n")
@@ -643,6 +651,9 @@ class MockedRunNvNMDTrainNoneInitModel(RunNvNMDTrain):
             f.write("read from init model ckpt: \n")
         with model_ckpt_index_file.open("w") as f:
             f.write("read from init model ckpt: \n")
+        qnn_dir.mkdir(exist_ok=True, parents=True)
+        with qnn_model.open("w") as f:
+            f.write("read from init model: \n")
         with lcurve.open("w") as f:
             f.write("read from train_script: \n")
             f.write(script.read_text() + "\n")
