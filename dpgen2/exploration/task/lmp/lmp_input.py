@@ -50,7 +50,7 @@ def make_lmp_input(
     nopbc: bool = False,
     max_seed: int = 1000000,
     deepmd_version="2.0",
-    nvnmd_version="0.0",
+    nvnmd_version=None,
     trj_seperate_files=True,
     pimd_bead: Optional[str] = None,
 ):
@@ -139,7 +139,7 @@ def make_lmp_input(
     ret += "\n"
     ret += "thermo_style    custom step temp pe ke etotal press vol lx ly lz xy xz yz\n"
     ret += "thermo          ${THERMO_FREQ}\n"
-    if trj_seperate_files:
+    if trj_seperate_files and nvnmd_version is None:
         ret += "dump            1 all custom ${DUMP_FREQ} traj/*.lammpstrj id type x y z fx fy fz\n"
     else:
         lmp_traj_file_name = (
@@ -203,6 +203,6 @@ def make_lmp_input(
     if(nvnmd_version is not None):
         ret += 'jump SELF end\n'
         ret += 'label rerun\n'
-        ret += 'rerun %s.0 dump x y z fx fy fz add yes\n' % lmp_traj_file_name
+        ret += 'rerun %s.0 dump x y z fx fy fz add yes\n' % lmp_traj_name
         ret += 'label end\n' 
     return ret

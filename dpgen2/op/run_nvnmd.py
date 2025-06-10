@@ -165,7 +165,7 @@ class RunNvNMD(OP):
                         Path(mname).symlink_to(mm)
                     except:
                         logging.warning(
-                            "failed to link %s, maybe already linked" % iname
+                            "failed to link %s, maybe already linked" % mname
                         )
                         pass
                     
@@ -185,9 +185,22 @@ class RunNvNMD(OP):
             set_models(lmp_input_name, model_names)
 
             # run lmp
-            commands = " ; ".join([" ".join(
-                ["cp", model_name, "model.pb", "&&", command, "-i", lmp_input_name, "-log", lmp_log_name, "-v", "rerun", "%d"%i, "&&", "cp", lmp_traj_name, lmp_traj_name+".%d"%i])
-                for i, model_name in enumerate(model_names)])
+            commands = " ; ".join(
+                [
+                    " ".join(
+                        [
+                            "cp", str(model_name), "model.pb", 
+                            "&&",
+                            "mylmp", "-i", lmp_input_name,
+                            "-log", lmp_log_name,
+                            "-v", "rerun", "%d"%i, 
+                            "&&", 
+                            "cp", lmp_traj_name, lmp_traj_name+".%d"%i
+                        ]
+                    )
+                    for i, model_name in enumerate(models)
+                ]
+            )
             ret, out, err = run_command(commands, shell=True)
             if ret != 0:
                 logging.error(
@@ -217,8 +230,9 @@ class RunNvNMD(OP):
                     with open("job.json", "w") as f:
                         json.dump(data, f, indent=4)
             merge_pimd_files()
-            
-            calc_model_devi([lmp_traj_name+f".{i}" for i in range(len(model_names))])
+           
+            if os.path.exists(lmp_traj_name):
+                calc_model_devi([lmp_traj_name+f".{i}" for i in range(len(model_names))])
 
         ret_dict = {
             "log": work_dir / lmp_log_name,
@@ -410,8 +424,8 @@ def merge_pimd_files():
                     f.write(f2.read())
 
 def calc_model_devi(
-    traj_files: list[str],
-    fname: str = "model_devi.out",
+    traj_files,
+    fname = "model_devi.out",
 ):
   
     trajectories = []
