@@ -114,9 +114,7 @@ def make_lmp_input(
             model_devi_file_name,
         )
     elif nvnmd_version is not None:
-        ret += "pair_style      nvnmd %s\n" % (
-            "model.pb" 
-        )
+        ret += "pair_style      nvnmd %s\n" % ("model.pb")
     else:
         # 1.x
         keywords = ""
@@ -139,19 +137,28 @@ def make_lmp_input(
     ret += "\n"
     ret += "thermo_style    custom step temp pe ke etotal press vol lx ly lz xy xz yz\n"
     ret += "thermo          ${THERMO_FREQ}\n"
-    if trj_seperate_files and nvnmd_version is None:
-        ret += "dump            1 all custom ${DUMP_FREQ} traj/*.lammpstrj id type x y z fx fy fz\n"
+    if trj_seperate_files:
+        if nvnmd_version is None:
+            ret += "dump            1 all custom ${DUMP_FREQ} traj/*.lammpstrj id type x y z fx fy fz\n"
+        else:
+            ret += "dump            1 all custom ${DUMP_FREQ} traj_${rerun}/*.lammpstrj id type x y z fx fy fz\n"
     else:
         lmp_traj_file_name = (
             lmp_pimd_traj_name % pimd_bead if pimd_bead is not None else lmp_traj_name
         )
-        ret += (
-            "dump            1 all custom ${DUMP_FREQ} %s id type x y z fx fy fz\n"
-            % lmp_traj_file_name
-        )
+        if nvnmd_version is None:
+            ret += (
+                "dump            1 all custom ${DUMP_FREQ} %s id type x y z fx fy fz\n"
+                % lmp_traj_file_name
+            )
+        else:
+            ret += (
+                "dump            1 all custom ${DUMP_FREQ} %s_${rerun} id type x y z fx fy fz\n"
+                % lmp_traj_file_name
+            )
     ret += "restart         10000 dpgen.restart\n"
     ret += "\n"
-    if(nvnmd_version is not None):
+    if nvnmd_version is not None:
         ret += 'if "${rerun} > 0" then "jump SELF rerun"\n'
     if pka_e is None:
         ret += 'if "${restart} == 0" then "velocity        all create ${TEMP} %d"' % (
@@ -200,9 +207,12 @@ def make_lmp_input(
     ret += "\n"
     ret += "timestep        %f\n" % dt
     ret += "run             ${NSTEPS} upto\n"
-    if(nvnmd_version is not None):
-        ret += 'jump SELF end\n'
-        ret += 'label rerun\n'
-        ret += 'rerun %s.0 dump x y z fx fy fz add yes\n' % lmp_traj_name
-        ret += 'label end\n' 
+    if nvnmd_version is not None:
+        ret += "jump SELF end\n"
+        ret += "label rerun\n"
+        if trj_seperate_files:
+            ret += "rerun traj_0/*.lammpstrj dump x y z fx fy fz add yes\n"
+        else:
+            ret += "rerun %s_0 dump x y z fx fy fz add yes\n" % lmp_traj_name
+        ret += "label end\n"
     return ret

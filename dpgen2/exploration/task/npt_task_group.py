@@ -134,7 +134,7 @@ class NPTTaskGroup(ConfSamplingTaskGroup):
                 self.ele_temp_f,
                 self.ele_temp_a,
                 self.no_pbc,
-                nvnmd_version = self.nvnmd_version,
+                nvnmd_version=self.nvnmd_version,
                 trj_seperate_files=False,
                 pimd_bead=self.pimd_bead,
             ),

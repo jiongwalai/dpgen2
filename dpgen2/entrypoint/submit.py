@@ -104,16 +104,15 @@ from dpgen2.op import (
     PrepCalyInput,
     PrepCalyModelDevi,
     PrepDPTrain,
-    PrepNvNMDTrain,
     PrepLmp,
     PrepRelax,
     RunCalyDPOptim,
     RunCalyModelDevi,
     RunDPTrain,
-    RunNvNMDTrain,
     RunLmp,
     RunLmpHDF5,
     RunNvNMD,
+    RunNvNMDTrain,
     RunRelax,
     RunRelaxHDF5,
     SelectConfs,
@@ -126,7 +125,6 @@ from dpgen2.superop import (
     PrepRunCaly,
     PrepRunDiffCSP,
     PrepRunDPTrain,
-    PrepRunNvNMDTrain,
     PrepRunFp,
     PrepRunLmp,
 )
@@ -187,9 +185,9 @@ def make_concurrent_learning_op(
             optional_files=train_optional_files,
         )
     elif train_style == "dp-nvnmd":
-        prep_run_train_op = PrepRunNvNMDTrain(
+        prep_run_train_op = PrepRunDPTrain(
             "prep-run-nvnmd-train",
-            PrepNvNMDTrain,
+            PrepDPTrain,
             RunNvNMDTrain,
             prep_config=prep_train_config,
             run_config=run_train_config,
@@ -208,7 +206,7 @@ def make_concurrent_learning_op(
             run_config=run_explore_config,
             upload_python_packages=upload_python_packages,
         )
-    elif "nvnmd" in explore_style:
+    elif "lmp-nvnmd" in explore_style:
         prep_run_explore_op = PrepRunLmp(
             "prep-run-nvnmd",
             PrepLmp,
@@ -216,7 +214,7 @@ def make_concurrent_learning_op(
             prep_config=prep_explore_config,
             run_config=run_explore_config,
             upload_python_packages=upload_python_packages,
-        ) 
+        )
     elif "calypso" in explore_style:
         expl_mode = explore_style.split(":")[-1] if ":" in explore_style else "default"
         if expl_mode == "merge":
@@ -310,7 +308,7 @@ def make_naive_exploration_scheduler(
     # use npt task group
     explore_style = config["explore"]["type"]
 
-    if explore_style in ("lmp", "nvnmd"):
+    if explore_style in ("lmp", "lmp-nvnmd"):
         return make_lmp_naive_exploration_scheduler(config)
     elif "calypso" in explore_style or explore_style == "diffcsp":
         return make_naive_exploration_scheduler_without_conf(config, explore_style)
@@ -531,7 +529,7 @@ def workflow_concurrent_learning(
             else None
         )
         config["train"]["numb_models"] = 1
-    
+
     elif train_style == "dp-nvnmd":
         init_models_paths = config["train"].get("init_models_paths", None)
         numb_models = config["train"]["numb_models"]
@@ -540,7 +538,7 @@ def workflow_concurrent_learning(
                 f"{len(init_models_paths)} init models provided, which does "
                 "not match numb_models={numb_models}"
             )
-            
+
     else:
         raise RuntimeError(f"unknown params, train_style: {train_style}")
 
@@ -660,8 +658,6 @@ def workflow_concurrent_learning(
         init_models = get_artifact_from_uri(config["train"]["init_models_uri"])
     elif train_style == "dp-dist" and config["train"]["student_model_uri"] is not None:
         init_models = get_artifact_from_uri(config["train"]["student_model_uri"])
-    elif train_style == "dp-nvnmd" and config["train"]["init_models_uri"] is not None:
-        init_models = get_artifact_from_uri(config["train"]["init_models_uri"])
     elif init_models_paths is not None:
         init_models = upload_artifact_and_print_uri(init_models_paths, "init_models")
     else:
@@ -699,9 +695,6 @@ def workflow_concurrent_learning(
         },
         artifacts={
             "init_models": init_models,
-            "init_models_ckpt_meta": None,
-            "init_models_ckpt_index": None,
-            "init_models_ckpt_data": None,
             "init_data": init_data,
             "iter_data": iter_data,
         },

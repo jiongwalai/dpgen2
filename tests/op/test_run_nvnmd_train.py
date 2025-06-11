@@ -35,9 +35,12 @@ from dpgen2.constants import (
     train_qnn_script_name,
     train_task_pattern,
 )
+from dpgen2.op.run_dp_train import (
+    RunDPTrain,
+    _get_data_size_of_all_mult_sys,
+)
 from dpgen2.op.run_nvnmd_train import (
     RunNvNMDTrain,
-    _get_data_size_of_all_mult_sys,
     _make_train_command,
 )
 
@@ -78,10 +81,11 @@ class TestRunNvNMDTrain(unittest.TestCase):
         self.init_data = [Path("init/data-0"), Path("init/data-1")]
         self.init_data = sorted(list(self.init_data))
 
-        self.init_model = Path("bar.pb")
-        self.init_model_ckpt_meta = Path("model.ckpt.meta")
-        self.init_model_ckpt_data = Path("model.ckpt.data")
-        self.init_model_ckpt_index = Path("model.ckpt.index")
+        #self.init_model = Path("bar.pb")
+        #self.init_model_ckpt_meta = Path("model.ckpt.meta")
+        #self.init_model_ckpt_data = Path("model.ckpt.data")
+        #self.init_model_ckpt_index = Path("model.ckpt.index")
+        self.init_model = Path("nvnmd_models")
 
         self.config = {
             "init_model_policy": "no",
@@ -92,7 +96,7 @@ class TestRunNvNMDTrain(unittest.TestCase):
             "init_model_start_pref_f": 100,
             "init_model_start_pref_v": 0.0,
         }
-        self.config = RunNvNMDTrain.normalize_config(self.config)
+        self.config = RunDPTrain.normalize_config(self.config)
 
         self.old_data_size = (
             self.init_nframs_0 + self.init_nframs_1 + sum(self.nframes_0)
@@ -134,7 +138,7 @@ class TestRunNvNMDTrain(unittest.TestCase):
                     "auto_prob": "prob_sys_size",
                 },
                 "disp_file": "lcurve.out",
-                "save_ckpt": "model.ckpt"
+                "save_ckpt": "model.ckpt",
             },
             "learning_rate": {
                 "start_lr": 1.0,
@@ -173,6 +177,34 @@ class TestRunNvNMDTrain(unittest.TestCase):
                 "start_pref_v": 0.0,
             },
         }
+        self.expected_qnn_model_odict_v2 = {
+            "training": {
+                "training_data": {
+                    "systems": [
+                        "init/data-0",
+                        "init/data-1",
+                        "data-0/foo3",
+                        "data-0/foo4",
+                        "data-1/foo2",
+                        "data-1/foo3",
+                        "data-1/foo5",
+                    ],
+                    "batch_size": "auto",
+                    "auto_prob": "prob_sys_size; 0:4:0.9; 4:7:0.1",
+                },
+                "disp_file": "lcurve.out",
+                "save_ckpt": "model.ckpt",
+                "numb_steps": 0,
+            },
+            "learning_rate": {
+                "start_lr": 1e-4,
+            },
+            "loss": {
+                "start_pref_e": 0.1,
+                "start_pref_f": 100,
+                "start_pref_v": 0.0,
+            }, 
+        }
 
         self.idict_v1 = {
             "training": {
@@ -201,7 +233,7 @@ class TestRunNvNMDTrain(unittest.TestCase):
                 "batch_size": "auto",
                 "auto_prob_style": "prob_sys_size",
                 "disp_file": "lcurve.out",
-                "save_ckpt": "model.ckpt"
+                "save_ckpt": "model.ckpt",
             },
             "learning_rate": {
                 "start_lr": 1.0,
@@ -238,6 +270,32 @@ class TestRunNvNMDTrain(unittest.TestCase):
                 "start_pref_v": 0.0,
             },
         }
+        self.expected_qnn_model_odict_v1 = {
+            "training": {
+                "systems": [
+                    "init/data-0",
+                    "init/data-1",
+                    "data-0/foo3",
+                    "data-0/foo4",
+                    "data-1/foo2",
+                    "data-1/foo3",
+                    "data-1/foo5",
+                ],
+                "batch_size": "auto",
+                "auto_prob_style": "prob_sys_size; 0:4:0.9; 4:7:0.1",
+                "disp_file": "lcurve.out",
+                "save_ckpt": "model.ckpt",
+                "stop_batch": 0,
+            },
+            "learning_rate": {
+                "start_lr": 1e-4,
+            },
+            "loss": {
+                "start_pref_e": 0.1,
+                "start_pref_f": 100,
+                "start_pref_v": 0.0,
+            },
+        }
 
     def tearDown(self):
         for ii in [
@@ -262,68 +320,9 @@ class TestRunNvNMDTrain(unittest.TestCase):
         self.assertAlmostEqual(config["init_model_start_pref_f"], 100)
         self.assertAlmostEqual(config["init_model_start_pref_v"], 0.0)
 
-    def test_get_size_of_all_mult_sys(self):
-        cc = _get_data_size_of_all_mult_sys(self.iter_data)
-        self.assertEqual(cc, sum(self.nframes_0) + sum(self.nframes_1))
-        cc = _get_data_size_of_all_mult_sys(self.mixed_iter_data, mixed_type=True)
-        self.assertEqual(cc, sum(self.nframes_0) + sum(self.nframes_1))
-        # read the mixed type systems as if they were standard system,
-        # should give the correct estimate of the data size
-        cc = _get_data_size_of_all_mult_sys(self.mixed_iter_data, mixed_type=False)
-        self.assertEqual(cc, sum(self.nframes_0) + sum(self.nframes_1))
-
-    def test_decide_init_model_no_model(self):
-        do_init_model = RunNvNMDTrain.decide_init_model(
-            self.config, None, self.init_data, self.iter_data
-        )
-        self.assertFalse(do_init_model)
-
-    def test_decide_init_model_none_iter_data(self):
-        do_init_model = RunNvNMDTrain.decide_init_model(
-            self.config, self.init_model, self.init_data, None
-        )
-        self.assertFalse(do_init_model)
-
-    def test_decide_init_model_no_iter_data(self):
-        do_init_model = RunNvNMDTrain.decide_init_model(
-            self.config, self.init_model, self.init_data, []
-        )
-        self.assertFalse(do_init_model)
-
-    def test_decide_init_model_config_no(self):
-        config = self.config.copy()
-        config["init_model_policy"] = "no"
-        do_init_model = RunNvNMDTrain.decide_init_model(
-            config, self.init_model, self.init_data, self.iter_data
-        )
-        self.assertFalse(do_init_model)
-
-    def test_decide_init_model_config_yes(self):
-        config = self.config.copy()
-        config["init_model_policy"] = "yes"
-        do_init_model = RunNvNMDTrain.decide_init_model(
-            config, self.init_model, self.init_data, self.iter_data
-        )
-        self.assertTrue(do_init_model)
-
-    def test_decide_init_model_config_larger_than_no(self):
-        config = self.config.copy()
-        config["init_model_policy"] = f"old_data_larger_than:{self.old_data_size}"
-        do_init_model = RunNvNMDTrain.decide_init_model(
-            config, self.init_model, self.init_data, self.iter_data
-        )
-        self.assertFalse(do_init_model)
-
-    def test_decide_init_model_config_larger_than_yes(self):
-        config = self.config.copy()
-        config["init_model_policy"] = f"old_data_larger_than:{self.old_data_size-1}"
-        do_init_model = RunNvNMDTrain.decide_init_model(
-            config, self.init_model, self.init_data, self.iter_data
-        )
-        self.assertTrue(do_init_model)
 
     def test_update_input_dict_v1_init_model(self):
-        odict = RunNvNMDTrain.write_data_to_input_script(
+        odict = RunDPTrain.write_data_to_input_script(
             self.idict_v1,
             self.config,
             self.init_data,
@@ -333,13 +332,17 @@ class TestRunNvNMDTrain(unittest.TestCase):
         )
         config = self.config.copy()
         config["init_model_policy"] = "yes"
-        odict = RunNvNMDTrain.write_other_to_input_script(
-            odict, config, True, False, major_version="1"
+        odict = RunDPTrain.write_other_to_input_script(
+            odict, config, True, major_version="1", do_quantized=False
         )
         self.assertDictEqual(odict, self.expected_init_model_odict_v1)
+        odict = RunDPTrain.write_other_to_input_script(
+            odict, config, True, major_version="1", do_quantized=True
+        )
+        self.assertDictEqual(odict, self.expected_qnn_model_odict_v1)
 
     def test_update_input_dict_v1(self):
-        odict = RunNvNMDTrain.write_data_to_input_script(
+        odict = RunDPTrain.write_data_to_input_script(
             self.idict_v1,
             self.config,
             self.init_data,
@@ -349,14 +352,14 @@ class TestRunNvNMDTrain(unittest.TestCase):
         )
         config = self.config.copy()
         config["init_model_policy"] = "no"
-        odict = RunNvNMDTrain.write_other_to_input_script(
-            odict, config, False, False, major_version="1"
+        odict = RunDPTrain.write_other_to_input_script(
+            odict, config, False, major_version="1", do_quantized=False
         )
         self.assertDictEqual(odict, self.expected_odict_v1)
 
     def test_update_input_dict_v2_init_model(self):
         idict = self.idict_v2
-        odict = RunNvNMDTrain.write_data_to_input_script(
+        odict = RunDPTrain.write_data_to_input_script(
             idict,
             self.config,
             self.init_data,
@@ -366,14 +369,18 @@ class TestRunNvNMDTrain(unittest.TestCase):
         )
         config = self.config.copy()
         config["init_model_policy"] = "yes"
-        odict = RunNvNMDTrain.write_other_to_input_script(
-            odict, config, True, False, major_version="2"
+        odict = RunDPTrain.write_other_to_input_script(
+            odict, config, True, major_version="2", do_quantized=False
         )
         self.assertDictEqual(odict, self.expected_init_model_odict_v2)
+        odict = RunDPTrain.write_other_to_input_script(
+            odict, config, True, major_version="2", do_quantized=True
+        )
+        self.assertDictEqual(odict, self.expected_qnn_model_odict_v2)
 
     def test_update_input_dict_v2(self):
         idict = self.idict_v2
-        odict = RunNvNMDTrain.write_data_to_input_script(
+        odict = RunDPTrain.write_data_to_input_script(
             idict,
             self.config,
             self.init_data,
@@ -383,8 +390,8 @@ class TestRunNvNMDTrain(unittest.TestCase):
         )
         config = self.config.copy()
         config["init_model_policy"] = "no"
-        odict = RunNvNMDTrain.write_other_to_input_script(
-            odict, config, False, False,major_version="2"
+        odict = RunDPTrain.write_other_to_input_script(
+            odict, config, False, major_version="2", do_quantized=False
         )
         self.assertDictEqual(odict, self.expected_odict_v2)
 
@@ -410,26 +417,47 @@ class TestRunNvNMDTrain(unittest.TestCase):
                     "task_name": task_name,
                     "task_path": Path(task_path),
                     "init_model": Path(self.init_model),
-                    "init_model_ckpt_meta": Path(self.init_model_ckpt_meta),
-                    "init_model_ckpt_data": Path(self.init_model_ckpt_data),
-                    "init_model_ckpt_index": Path(self.init_model_ckpt_index),
                     "init_data": [Path(ii) for ii in self.init_data],
                     "iter_data": [Path(ii) for ii in self.iter_data],
                 }
             )
         )
-        self.assertEqual(out["script"], work_dir / train_cnn_script_name)
-        self.assertEqual(out["cnn_model"], work_dir / "nvnmd_cnn/frozen_model.pb")
-        self.assertEqual(out["qnn_model"], work_dir / "nvnmd_qnn/model.pb")
-        self.assertEqual(out["model_ckpt_data"], work_dir / "nvnmd_cnn/model.ckpt.data-00000-of-00001")
-        self.assertEqual(out["model_ckpt_meta"], work_dir / "nvnmd_cnn/model.ckpt.meta")
-        self.assertEqual(out["model_ckpt_index"], work_dir / "nvnmd_cnn/model.ckpt.index")
-        self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
-        self.assertEqual(out["log"], work_dir / "train.log")
+        self.assertEqual(
+            out["script"],
+            work_dir / train_script_name
+        )
+        self.assertEqual(
+            out["model"] / "frozen_model.pb", 
+            work_dir / "nvnmd_models/frozen_model.pb",
+        )
+        self.assertEqual(
+            out["model"] / "model.pb", 
+            work_dir / "nvnmd_models/model.pb",
+        )
+        self.assertEqual(
+            out["model"] / "model.ckpt.data-00000-of-00001", 
+            work_dir / "nvnmd_models/model.ckpt.data-00000-of-00001",
+        )
+        self.assertEqual(
+            out["model"] / "model.ckpt.meta", 
+            work_dir / "nvnmd_models/model.ckpt.meta",
+        )
+        self.assertEqual(
+            out["model"] / "model.ckpt.index", 
+            work_dir / "nvnmd_models/model.ckpt.index",
+        )
+        self.assertEqual(
+            out["lcurve"],
+            work_dir / "nvnmd_cnn/lcurve.out",
+        )
+        self.assertEqual(
+            out["log"],
+            work_dir / "train.log",
+        )
 
         calls = [
             call(["dp", "train-nvnmd", train_cnn_script_name, "-s", "s1"]),
-            call(["dp", "train-nvnmd", train_qnn_script_name, "-s", "s2"])
+            call(["dp", "train-nvnmd", train_qnn_script_name, "-s", "s2"]),
         ]
         mocked_run.assert_has_calls(calls)
 
@@ -470,26 +498,41 @@ class TestRunNvNMDTrain(unittest.TestCase):
                     "task_name": task_name,
                     "task_path": Path(task_path),
                     "init_model": Path(self.init_model),
-                    "init_model_ckpt_meta": Path(self.init_model_ckpt_meta),
-                    "init_model_ckpt_data": Path(self.init_model_ckpt_data),
-                    "init_model_ckpt_index": Path(self.init_model_ckpt_index),
                     "init_data": [Path(ii) for ii in self.init_data],
                     "iter_data": [Path(ii) for ii in self.iter_data],
                 }
             )
         )
-        self.assertEqual(out["script"], work_dir / train_cnn_script_name)
-        self.assertEqual(out["cnn_model"], work_dir / "nvnmd_cnn/frozen_model.pb")
-        self.assertEqual(out["qnn_model"], work_dir / "nvnmd_qnn/model.pb")
-        self.assertEqual(out["model_ckpt_data"], work_dir / "nvnmd_cnn/model.ckpt.data-00000-of-00001")
-        self.assertEqual(out["model_ckpt_meta"], work_dir / "nvnmd_cnn/model.ckpt.meta")
-        self.assertEqual(out["model_ckpt_index"], work_dir / "nvnmd_cnn/model.ckpt.index")
+        self.assertEqual(
+            out["script"],
+            work_dir / train_script_name
+        )
+        self.assertEqual(
+            out["model"] / "frozen_model.pb", 
+            work_dir / "nvnmd_models/frozen_model.pb",
+        )
+        self.assertEqual(
+            out["model"] / "model.pb", 
+            work_dir / "nvnmd_models/model.pb",
+        )
+        self.assertEqual(
+            out["model"] / "model.ckpt.data-00000-of-00001", 
+            work_dir / "nvnmd_models/model.ckpt.data-00000-of-00001",
+        )
+        self.assertEqual(
+            out["model"] / "model.ckpt.meta", 
+            work_dir / "nvnmd_models/model.ckpt.meta",
+        )
+        self.assertEqual(
+            out["model"] / "model.ckpt.index", 
+            work_dir / "nvnmd_models/model.ckpt.index",
+        )
         self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
         self.assertEqual(out["log"], work_dir / "train.log")
 
         calls = [
             call(["dp", "train-nvnmd", train_cnn_script_name, "-s", "s1"]),
-            call(["dp", "train-nvnmd", train_qnn_script_name, "-s", "s2"])
+            call(["dp", "train-nvnmd", train_qnn_script_name, "-s", "s2"]),
         ]
         mocked_run.assert_has_calls(calls)
 
@@ -530,20 +573,35 @@ class TestRunNvNMDTrain(unittest.TestCase):
                     "task_name": task_name,
                     "task_path": Path(task_path),
                     "init_model": Path(self.init_model),
-                    "init_model_ckpt_meta": Path(self.init_model_ckpt_meta),
-                    "init_model_ckpt_data": Path(self.init_model_ckpt_data),
-                    "init_model_ckpt_index": Path(self.init_model_ckpt_index),
                     "init_data": [Path(ii) for ii in self.init_data],
                     "iter_data": [Path(ii) for ii in self.iter_data],
                 }
             )
         )
-        self.assertEqual(out["script"], work_dir / train_cnn_script_name)
-        self.assertEqual(out["cnn_model"], work_dir / "nvnmd_cnn/frozen_model.pb")
-        self.assertEqual(out["qnn_model"], work_dir / "nvnmd_qnn/model.pb")
-        self.assertEqual(out["model_ckpt_data"], work_dir / "nvnmd_cnn/model.ckpt.data-00000-of-00001")
-        self.assertEqual(out["model_ckpt_meta"], work_dir / "nvnmd_cnn/model.ckpt.meta")
-        self.assertEqual(out["model_ckpt_index"], work_dir / "nvnmd_cnn/model.ckpt.index")
+        self.assertEqual(
+            out["script"],
+            work_dir / train_script_name
+        )
+        self.assertEqual(
+            out["model"] / "frozen_model.pb", 
+            work_dir / "nvnmd_models/frozen_model.pb",
+        )
+        self.assertEqual(
+            out["model"] / "model.pb", 
+            work_dir / "nvnmd_models/model.pb",
+        )
+        self.assertEqual(
+            out["model"] / "model.ckpt.data-00000-of-00001", 
+            work_dir / "nvnmd_models/model.ckpt.data-00000-of-00001",
+        )
+        self.assertEqual(
+            out["model"] / "model.ckpt.meta", 
+            work_dir / "nvnmd_models/model.ckpt.meta",
+        )
+        self.assertEqual(
+            out["model"] / "model.ckpt.index", 
+            work_dir / "nvnmd_models/model.ckpt.index",
+        )
         self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
         self.assertEqual(out["log"], work_dir / "train.log")
 
@@ -556,7 +614,7 @@ class TestRunNvNMDTrain(unittest.TestCase):
                     "model.ckpt",
                     train_cnn_script_name,
                     "-s",
-                    "s1"
+                    "s1",
                 ]
             )
         ]
@@ -600,9 +658,6 @@ class TestRunNvNMDTrain(unittest.TestCase):
                         "task_name": task_name,
                         "task_path": Path(task_path),
                         "init_model": Path(self.init_model),
-                        "init_model_ckpt_meta": Path(self.init_model_ckpt_meta),
-                        "init_model_ckpt_data": Path(self.init_model_ckpt_data),
-                        "init_model_ckpt_index": Path(self.init_model_ckpt_index),
                         "init_data": [Path(ii) for ii in self.init_data],
                         "iter_data": [Path(ii) for ii in self.iter_data],
                     }
@@ -615,9 +670,10 @@ class TestRunNvNMDTrain(unittest.TestCase):
         mocked_run.assert_has_calls(calls)
 
         self.assertTrue(work_dir.is_dir())
-        with open(work_dir / train_cnn_script_name) as fp:
+        with open(work_dir / train_script_name) as fp:
             jdata = json.load(fp)
             self.assertDictEqual(jdata, self.expected_odict_v2)
+
 
 class TestRunNvNMDTrainNullIterData(unittest.TestCase):
     def setUp(self):
@@ -637,6 +693,7 @@ class TestRunNvNMDTrainNullIterData(unittest.TestCase):
         self.init_model_ckpt_meta = Path("model.ckpt.meta")
         self.init_model_ckpt_data = Path("model.ckpt.data")
         self.init_model_ckpt_index = Path("model.ckpt.index")
+        self.init_model = Path("nvnmd_models")
 
         self.config = {
             "init_model_policy": "no",
@@ -647,7 +704,7 @@ class TestRunNvNMDTrainNullIterData(unittest.TestCase):
             "init_model_start_pref_f": 100,
             "init_model_start_pref_v": 0.0,
         }
-        self.config = RunNvNMDTrain.normalize_config(self.config)
+        self.config = RunDPTrain.normalize_config(self.config)
 
         self.task_name = "task-000"
         self.task_path = "input-000"
@@ -678,7 +735,7 @@ class TestRunNvNMDTrainNullIterData(unittest.TestCase):
                     "auto_prob": "prob_sys_size",
                 },
                 "disp_file": "lcurve.out",
-                "save_ckpt": "model.ckpt"
+                "save_ckpt": "model.ckpt",
             },
             "learning_rate": {
                 "start_lr": 1.0,
@@ -697,7 +754,7 @@ class TestRunNvNMDTrainNullIterData(unittest.TestCase):
 
     def test_update_input_dict_v2_empty_list(self):
         idict = self.idict_v2
-        odict = RunNvNMDTrain.write_data_to_input_script(
+        odict = RunDPTrain.write_data_to_input_script(
             idict,
             self.config,
             self.init_data,
@@ -707,8 +764,8 @@ class TestRunNvNMDTrainNullIterData(unittest.TestCase):
         )
         config = self.config.copy()
         config["init_model_policy"] = "no"
-        odict = RunNvNMDTrain.write_other_to_input_script(
-            odict, config, False, False, major_version="2"
+        odict = RunDPTrain.write_other_to_input_script(
+            odict, config, False, major_version="2", do_quantized=False
         )
         self.assertDictEqual(odict, self.expected_odict_v2)
 
@@ -736,26 +793,41 @@ class TestRunNvNMDTrainNullIterData(unittest.TestCase):
                     "task_name": task_name,
                     "task_path": Path(task_path),
                     "init_model": Path(self.init_model),
-                    "init_model_ckpt_meta": Path(self.init_model_ckpt_meta),
-                    "init_model_ckpt_data": Path(self.init_model_ckpt_data),
-                    "init_model_ckpt_index": Path(self.init_model_ckpt_index),
                     "init_data": [Path(ii) for ii in self.init_data],
                     "iter_data": [empty_data],
                 }
             )
         )
-        self.assertEqual(out["script"], work_dir / train_cnn_script_name)
-        self.assertEqual(out["cnn_model"], work_dir / "nvnmd_cnn/frozen_model.pb")
-        self.assertEqual(out["qnn_model"], work_dir / "nvnmd_qnn/model.pb")
-        self.assertEqual(out["model_ckpt_data"], work_dir / "nvnmd_cnn/model.ckpt.data-00000-of-00001")
-        self.assertEqual(out["model_ckpt_meta"], work_dir / "nvnmd_cnn/model.ckpt.meta")
-        self.assertEqual(out["model_ckpt_index"], work_dir / "nvnmd_cnn/model.ckpt.index")
+        self.assertEqual(
+            out["script"],
+            work_dir / train_script_name
+        )
+        self.assertEqual(
+            out["model"] / "frozen_model.pb", 
+            work_dir / "nvnmd_models/frozen_model.pb",
+        )
+        self.assertEqual(
+            out["model"] / "model.pb", 
+            work_dir / "nvnmd_models/model.pb",
+        )
+        self.assertEqual(
+            out["model"] / "model.ckpt.data-00000-of-00001", 
+            work_dir / "nvnmd_models/model.ckpt.data-00000-of-00001",
+        )
+        self.assertEqual(
+            out["model"] / "model.ckpt.meta", 
+            work_dir / "nvnmd_models/model.ckpt.meta",
+        )
+        self.assertEqual(
+            out["model"] / "model.ckpt.index", 
+            work_dir / "nvnmd_models/model.ckpt.index",
+        )
         self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
         self.assertEqual(out["log"], work_dir / "train.log")
 
         calls = [
             call(["dp", "train-nvnmd", train_cnn_script_name, "-s", "s1"]),
-            call(["dp", "train-nvnmd", train_qnn_script_name, "-s", "s2"])
+            call(["dp", "train-nvnmd", train_qnn_script_name, "-s", "s2"]),
         ]
         mocked_run.assert_has_calls(calls)
 
