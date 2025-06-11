@@ -67,11 +67,6 @@ class TestDownloadDpgen2Artifact(unittest.TestCase):
                 skip_exists=True,
             ),
             mock.call(
-                "arti-init_models",
-                path=Path("foo/iter-000000/prep-run-train/inputs"),
-                skip_exists=True,
-            ),
-            mock.call(
                 "arti-init_models_ckpt_meta",
                 path=Path("foo/iter-000000/prep-run-train/inputs"),
                 skip_exists=True,
