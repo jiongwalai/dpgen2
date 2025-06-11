@@ -75,7 +75,8 @@ def _make_train_command(
         if isinstance(init_model, list):    # initialize from model.ckpt
             #init_model = ".".join(str(init_model[0]).split('.')[:-1])
             for i in init_model:
-                shutil.copy(i, '.')
+                if(os.path.exists(i)):
+                    shutil.copy(i, '.')
             init_model = "model.ckpt"
             init_flag = "--init-model"
         else:                               # initialize from frozen model
