@@ -363,11 +363,9 @@ def _block_cl(
     block_steps.outputs.artifacts["models"]._from = prep_run_dp_train.outputs.artifacts[
         "models"
     ]
-    if "models_ckpt_meta" in prep_run_dp_train.outputs.artifacts:
+    if isinstance(prep_run_dp_train_op, PrepRunNvNMDTrain):
         block_steps.outputs.artifacts["models_ckpt_meta"]._from = prep_run_dp_train.outputs.artifacts["models_ckpt_meta"]
-    if "models_ckpt_meta" in prep_run_dp_train.outputs.artifacts:
         block_steps.outputs.artifacts["models_ckpt_data"]._from = prep_run_dp_train.outputs.artifacts["models_ckpt_data"]
-    if "models_ckpt_meta" in prep_run_dp_train.outputs.artifacts:
         block_steps.outputs.artifacts["models_ckpt_index"]._from = prep_run_dp_train.outputs.artifacts["models_ckpt_index"]
     block_steps.outputs.artifacts["iter_data"]._from = collect_data.outputs.artifacts[
         "iter_data"

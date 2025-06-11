@@ -191,7 +191,7 @@ class RunNvNMD(OP):
                         [
                             "cp", str(model_name), "model.pb", 
                             "&&",
-                            "mylmp", "-i", lmp_input_name,
+                            command, "-i", lmp_input_name,
                             "-log", lmp_log_name,
                             "-v", "rerun", "%d"%i, 
                             "&&", 

@@ -380,35 +380,20 @@ def _loop(
         "explore_config": steps.inputs.parameters["explore_config"],
         "expl_task_grp": steps.inputs.parameters["expl_task_grp"],
     }
-    if hasattr( steps.inputs.artifacts["init_models_ckpt_meta"], "local_path" ) and \
-       hasattr( steps.inputs.artifacts["init_models_ckpt_data"], "local_path" ) and \
-       hasattr( steps.inputs.artifacts["init_models_ckpt_index"], "local_path" ):
-        block_step = Step(
-            name=name + "-block",
-            template=block_op,
-            parameters=block_common_parameters,
-            artifacts={
-                "init_models": steps.inputs.artifacts["init_models"],
-                "init_models_ckpt_meta": steps.inputs.artifacts["init_models_ckpt_meta"],
-                "init_models_ckpt_index": steps.inputs.artifacts["init_models_ckpt_index"],
-                "init_models_ckpt_data": steps.inputs.artifacts["init_models_ckpt_data"],
-                "init_data": steps.inputs.artifacts["init_data"],
-                "iter_data": steps.inputs.artifacts["iter_data"],
-            },
-            key=step_keys["block"],
-        )
-    else:
-        block_step = Step(
-            name=name + "-block",
-            template=block_op,
-            parameters=block_common_parameters,
-            artifacts={
-                "init_models": steps.inputs.artifacts["init_models"],
-                "init_data": steps.inputs.artifacts["init_data"],
-                "iter_data": steps.inputs.artifacts["iter_data"],
-            },
-            key=step_keys["block"],
-        )
+    block_step = Step(
+        name=name + "-block",
+        template=block_op,
+        parameters=block_common_parameters,
+        artifacts={
+            "init_models": steps.inputs.artifacts["init_models"],
+            "init_models_ckpt_meta": steps.inputs.artifacts["init_models_ckpt_meta"],
+            "init_models_ckpt_index": steps.inputs.artifacts["init_models_ckpt_index"],
+            "init_models_ckpt_data": steps.inputs.artifacts["init_models_ckpt_data"],
+            "init_data": steps.inputs.artifacts["init_data"],
+            "iter_data": steps.inputs.artifacts["iter_data"],
+        },
+        key=step_keys["block"],
+    )
     steps.add(block_step)
 
     scheduler_step = Step(
@@ -470,9 +455,9 @@ def _loop(
         ),
         "expl_task_grp": scheduler_step.outputs.parameters["expl_task_grp"],
     }
-    if hasattr( block_step.outputs.artifacts["models_ckpt_meta"], "local_path" ) and \
-       hasattr( block_step.outputs.artifacts["models_ckpt_data"], "local_path" ) and \
-       hasattr( block_step.outputs.artifacts["models_ckpt_index"], "local_path" ):
+    if (hasattr(block_step.outputs.artifacts["models_ckpt_meta"]._from, "path") and
+        hasattr(block_step.outputs.artifacts["models_ckpt_data"]._from, "path") and
+        hasattr(block_step.outputs.artifacts["models_ckpt_index"]._from, "path")):
         next_step = Step(
             name=name + "-next",
             template=steps,
@@ -513,25 +498,25 @@ def _loop(
         _then=block_step.outputs.artifacts["models"],
         _else=next_step.outputs.artifacts["models"],
     )
-    if ( hasattr(block_step.outputs.artifacts["models_ckpt_meta"], "local_path") or
-         hasattr(next_step.outputs.artifacts["models_ckpt_meta"], "local_path")
-    ): 
+    if ( hasattr(block_step.outputs.artifacts["models_ckpt_meta"]._from, "path") or
+         hasattr(next_step.outputs.artifacts["models_ckpt_meta"]._from, "path")
+    ):
         steps.outputs.artifacts["models_ckpt_meta"].from_expression = if_expression(
             _if=(scheduler_step.outputs.parameters["converged"] == True),
             _then=block_step.outputs.artifacts["models_ckpt_meta"],
             _else=next_step.outputs.artifacts["models_ckpt_meta"],
         )
-    if ( hasattr(block_step.outputs.artifacts["models_ckpt_data"], "local_path") or
-         hasattr(next_step.outputs.artifacts["models_ckpt_data"], "local_path")
+    if ( hasattr(block_step.outputs.artifacts["models_ckpt_data"]._from, "path") or
+         hasattr(next_step.outputs.artifacts["models_ckpt_data"]._from, "path")
     ): 
         steps.outputs.artifacts["models_ckpt_data"].from_expression = if_expression(
             _if=(scheduler_step.outputs.parameters["converged"] == True),
             _then=block_step.outputs.artifacts["models_ckpt_data"],
             _else=next_step.outputs.artifacts["models_ckpt_data"],
         )
-    if ( hasattr(block_step.outputs.artifacts["models_ckpt_index"], "local_path") or 
-         hasattr(next_step.outputs.artifacts["models_ckpt_index"], "local_path")
-    ): 
+    if ( hasattr(block_step.outputs.artifacts["models_ckpt_index"]._from, "path") or 
+         hasattr(next_step.outputs.artifacts["models_ckpt_index"]._from, "path")
+    ):
         steps.outputs.artifacts["models_ckpt_index"].from_expression = if_expression(
             _if=(scheduler_step.outputs.parameters["converged"] == True),
             _then=block_step.outputs.artifacts["models_ckpt_index"],
@@ -616,46 +601,32 @@ def _dpgen(
         "optional_parameter": steps.inputs.parameters["optional_parameter"],
         "expl_task_grp": scheduler_step.outputs.parameters["expl_task_grp"],
     }
-    if hasattr( steps.inputs.artifacts["init_models_ckpt_meta"], "local_path" ) and \
-       hasattr( steps.inputs.artifacts["init_models_ckpt_data"], "local_path" ) and \
-       hasattr( steps.inputs.artifacts["init_models_ckpt_index"], "local_path" ):
-        loop_step = Step(
-            name=name + "-loop",
-            template=loop_op,
-            parameters=common_parameters,
-            artifacts={
-                "init_models": steps.inputs.artifacts["init_models"],
-                "init_models_ckpt_meta":  steps.inputs.artifacts["init_models_ckpt_meta"],
-                "init_models_ckpt_data":  steps.inputs.artifacts["init_models_ckpt_data"],
-                "init_models_ckpt_index": steps.inputs.artifacts["init_models_ckpt_index"],
-                "init_data": steps.inputs.artifacts["init_data"],
-                "iter_data": steps.inputs.artifacts["iter_data"],
-            },
-            key="--".join(["%s" % id_step.outputs.parameters["block_id"], loop_key]),
-        )
-    else:
-        loop_step = Step(
-            name=name + "-loop",
-            template=loop_op,
-            parameters=common_parameters,
-            artifacts={
-                "init_models": steps.inputs.artifacts["init_models"],
-                "init_data": steps.inputs.artifacts["init_data"],
-                "iter_data": steps.inputs.artifacts["iter_data"],
-            },
-            key="--".join(["%s" % id_step.outputs.parameters["block_id"], loop_key]),
-        )
+
+    loop_step = Step(
+        name=name + "-loop",
+        template=loop_op,
+        parameters=common_parameters,
+        artifacts={
+            "init_models": steps.inputs.artifacts["init_models"],
+            "init_models_ckpt_meta":  steps.inputs.artifacts["init_models_ckpt_meta"],
+            "init_models_ckpt_data":  steps.inputs.artifacts["init_models_ckpt_data"],
+            "init_models_ckpt_index": steps.inputs.artifacts["init_models_ckpt_index"],
+            "init_data": steps.inputs.artifacts["init_data"],
+            "iter_data": steps.inputs.artifacts["iter_data"],
+        },
+        key="--".join(["%s" % id_step.outputs.parameters["block_id"], loop_key]),
+    )
     steps.add(loop_step)
 
     steps.outputs.parameters[
         "exploration_scheduler"
     ].value_from_parameter = loop_step.outputs.parameters["exploration_scheduler"]
     steps.outputs.artifacts["models"]._from = loop_step.outputs.artifacts["models"]
-    if hasattr(loop_step.outputs.artifacts["models_ckpt_meta"], "local_path"):
+    if hasattr(loop_step.outputs.artifacts["models_ckpt_meta"]._from, "path"):
         steps.outputs.artifacts["models_ckpt_meta"]._from = loop_step.outputs.artifacts["models_ckpt_meta"]
-    if hasattr(loop_step.outputs.artifacts["models_ckpt_data"], "local_path"):
+    if hasattr(loop_step.outputs.artifacts["models_ckpt_data"]._from, "path"):
         steps.outputs.artifacts["models_ckpt_data"]._from = loop_step.outputs.artifacts["models_ckpt_data"]
-    if hasattr(loop_step.outputs.artifacts["models_ckpt_index"], "local_path"):
+    if hasattr(loop_step.outputs.artifacts["models_ckpt_index"]._from, "path"):
         steps.outputs.artifacts["models_ckpt_index"]._from = loop_step.outputs.artifacts["models_ckpt_index"]
     steps.outputs.artifacts["iter_data"]._from = loop_step.outputs.artifacts[
         "iter_data"
