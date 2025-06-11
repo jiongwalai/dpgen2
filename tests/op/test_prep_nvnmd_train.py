@@ -31,10 +31,7 @@ from dpgen2.op.prep_nvnmd_train import (
 # isort: on
 
 template_script_nvnmd_v0 = {
-    "nvnmd": {
-        "version": 0,
-        "seed": 1
-    },
+    "nvnmd": {"version": 0, "seed": 1},
     "training": {
         "systems": [],
         "stop_batch": 2000,
@@ -45,10 +42,7 @@ template_script_nvnmd_v0 = {
 
 
 template_script_nvnmd_v1 = {
-    "nvnmd": {
-        "version": 1,
-        "seed": 1
-    },
+    "nvnmd": {"version": 1, "seed": 1},
     "training": {
         "systems": [],
         "stop_batch": 2000,
@@ -88,7 +82,10 @@ class TestPrepNvNMDTrain(unittest.TestCase):
 
     def test_template_nvnmd_v1(self):
         ip = OPIO(
-            {"template_script": template_script_nvnmd_v1, "numb_models": self.numb_models}
+            {
+                "template_script": template_script_nvnmd_v1,
+                "numb_models": self.numb_models,
+            }
         )
 
         faked_rg.faked_random = -1
@@ -158,7 +155,7 @@ class TestPrepNvNMDTrain(unittest.TestCase):
                 "template_script": [
                     template_script_nvnmd_v1,
                     template_script_nvnmd_v0,
-                    template_script_nvnmd_v1
+                    template_script_nvnmd_v1,
                 ],
                 "numb_models": self.numb_models,
             }

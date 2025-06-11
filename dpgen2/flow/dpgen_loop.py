@@ -186,8 +186,8 @@ class ConcurrentLearningLoop(Steps):
         }
         self._input_artifacts = {
             "init_models": InputArtifact(optional=True),
-            "init_models_ckpt_meta":  InputArtifact(optional=True),
-            "init_models_ckpt_data":  InputArtifact(optional=True),
+            "init_models_ckpt_meta": InputArtifact(optional=True),
+            "init_models_ckpt_data": InputArtifact(optional=True),
             "init_models_ckpt_index": InputArtifact(optional=True),
             "init_data": InputArtifact(),
             "iter_data": InputArtifact(),
@@ -455,18 +455,26 @@ def _loop(
         ),
         "expl_task_grp": scheduler_step.outputs.parameters["expl_task_grp"],
     }
-    if (hasattr(block_step.outputs.artifacts["models_ckpt_meta"]._from, "path") and
-        hasattr(block_step.outputs.artifacts["models_ckpt_data"]._from, "path") and
-        hasattr(block_step.outputs.artifacts["models_ckpt_index"]._from, "path")):
+    if (
+        hasattr(block_step.outputs.artifacts["models_ckpt_meta"]._from, "path")
+        and hasattr(block_step.outputs.artifacts["models_ckpt_data"]._from, "path")
+        and hasattr(block_step.outputs.artifacts["models_ckpt_index"]._from, "path")
+    ):
         next_step = Step(
             name=name + "-next",
             template=steps,
             parameters=next_common_parameters,
             artifacts={
                 "init_models": block_step.outputs.artifacts["models"],
-                "init_models_ckpt_meta": block_step.outputs.artifacts["models_ckpt_meta"],
-                "init_models_ckpt_index": block_step.outputs.artifacts["models_ckpt_index"],
-                "init_models_ckpt_data": block_step.outputs.artifacts["models_ckpt_data"],
+                "init_models_ckpt_meta": block_step.outputs.artifacts[
+                    "models_ckpt_meta"
+                ],
+                "init_models_ckpt_index": block_step.outputs.artifacts[
+                    "models_ckpt_index"
+                ],
+                "init_models_ckpt_data": block_step.outputs.artifacts[
+                    "models_ckpt_data"
+                ],
                 "init_data": steps.inputs.artifacts["init_data"],
                 "iter_data": block_step.outputs.artifacts["iter_data"],
             },
@@ -498,25 +506,25 @@ def _loop(
         _then=block_step.outputs.artifacts["models"],
         _else=next_step.outputs.artifacts["models"],
     )
-    if ( hasattr(block_step.outputs.artifacts["models_ckpt_meta"]._from, "path") or
-         hasattr(next_step.outputs.artifacts["models_ckpt_meta"]._from, "path")
-    ):
+    if hasattr(
+        block_step.outputs.artifacts["models_ckpt_meta"]._from, "path"
+    ) or hasattr(next_step.outputs.artifacts["models_ckpt_meta"]._from, "path"):
         steps.outputs.artifacts["models_ckpt_meta"].from_expression = if_expression(
             _if=(scheduler_step.outputs.parameters["converged"] == True),
             _then=block_step.outputs.artifacts["models_ckpt_meta"],
             _else=next_step.outputs.artifacts["models_ckpt_meta"],
         )
-    if ( hasattr(block_step.outputs.artifacts["models_ckpt_data"]._from, "path") or
-         hasattr(next_step.outputs.artifacts["models_ckpt_data"]._from, "path")
-    ): 
+    if hasattr(
+        block_step.outputs.artifacts["models_ckpt_data"]._from, "path"
+    ) or hasattr(next_step.outputs.artifacts["models_ckpt_data"]._from, "path"):
         steps.outputs.artifacts["models_ckpt_data"].from_expression = if_expression(
             _if=(scheduler_step.outputs.parameters["converged"] == True),
             _then=block_step.outputs.artifacts["models_ckpt_data"],
             _else=next_step.outputs.artifacts["models_ckpt_data"],
         )
-    if ( hasattr(block_step.outputs.artifacts["models_ckpt_index"]._from, "path") or 
-         hasattr(next_step.outputs.artifacts["models_ckpt_index"]._from, "path")
-    ):
+    if hasattr(
+        block_step.outputs.artifacts["models_ckpt_index"]._from, "path"
+    ) or hasattr(next_step.outputs.artifacts["models_ckpt_index"]._from, "path"):
         steps.outputs.artifacts["models_ckpt_index"].from_expression = if_expression(
             _if=(scheduler_step.outputs.parameters["converged"] == True),
             _then=block_step.outputs.artifacts["models_ckpt_index"],
@@ -608,8 +616,8 @@ def _dpgen(
         parameters=common_parameters,
         artifacts={
             "init_models": steps.inputs.artifacts["init_models"],
-            "init_models_ckpt_meta":  steps.inputs.artifacts["init_models_ckpt_meta"],
-            "init_models_ckpt_data":  steps.inputs.artifacts["init_models_ckpt_data"],
+            "init_models_ckpt_meta": steps.inputs.artifacts["init_models_ckpt_meta"],
+            "init_models_ckpt_data": steps.inputs.artifacts["init_models_ckpt_data"],
             "init_models_ckpt_index": steps.inputs.artifacts["init_models_ckpt_index"],
             "init_data": steps.inputs.artifacts["init_data"],
             "iter_data": steps.inputs.artifacts["iter_data"],
@@ -623,11 +631,17 @@ def _dpgen(
     ].value_from_parameter = loop_step.outputs.parameters["exploration_scheduler"]
     steps.outputs.artifacts["models"]._from = loop_step.outputs.artifacts["models"]
     if hasattr(loop_step.outputs.artifacts["models_ckpt_meta"]._from, "path"):
-        steps.outputs.artifacts["models_ckpt_meta"]._from = loop_step.outputs.artifacts["models_ckpt_meta"]
+        steps.outputs.artifacts["models_ckpt_meta"]._from = loop_step.outputs.artifacts[
+            "models_ckpt_meta"
+        ]
     if hasattr(loop_step.outputs.artifacts["models_ckpt_data"]._from, "path"):
-        steps.outputs.artifacts["models_ckpt_data"]._from = loop_step.outputs.artifacts["models_ckpt_data"]
+        steps.outputs.artifacts["models_ckpt_data"]._from = loop_step.outputs.artifacts[
+            "models_ckpt_data"
+        ]
     if hasattr(loop_step.outputs.artifacts["models_ckpt_index"]._from, "path"):
-        steps.outputs.artifacts["models_ckpt_index"]._from = loop_step.outputs.artifacts["models_ckpt_index"]
+        steps.outputs.artifacts[
+            "models_ckpt_index"
+        ]._from = loop_step.outputs.artifacts["models_ckpt_index"]
     steps.outputs.artifacts["iter_data"]._from = loop_step.outputs.artifacts[
         "iter_data"
     ]

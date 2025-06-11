@@ -134,7 +134,7 @@ class TestRunNvNMDTrain(unittest.TestCase):
                     "auto_prob": "prob_sys_size",
                 },
                 "disp_file": "lcurve.out",
-                "save_ckpt": "model.ckpt"
+                "save_ckpt": "model.ckpt",
             },
             "learning_rate": {
                 "start_lr": 1.0,
@@ -201,7 +201,7 @@ class TestRunNvNMDTrain(unittest.TestCase):
                 "batch_size": "auto",
                 "auto_prob_style": "prob_sys_size",
                 "disp_file": "lcurve.out",
-                "save_ckpt": "model.ckpt"
+                "save_ckpt": "model.ckpt",
             },
             "learning_rate": {
                 "start_lr": 1.0,
@@ -384,7 +384,7 @@ class TestRunNvNMDTrain(unittest.TestCase):
         config = self.config.copy()
         config["init_model_policy"] = "no"
         odict = RunNvNMDTrain.write_other_to_input_script(
-            odict, config, False, False,major_version="2"
+            odict, config, False, False, major_version="2"
         )
         self.assertDictEqual(odict, self.expected_odict_v2)
 
@@ -421,15 +421,20 @@ class TestRunNvNMDTrain(unittest.TestCase):
         self.assertEqual(out["script"], work_dir / train_cnn_script_name)
         self.assertEqual(out["cnn_model"], work_dir / "nvnmd_cnn/frozen_model.pb")
         self.assertEqual(out["qnn_model"], work_dir / "nvnmd_qnn/model.pb")
-        self.assertEqual(out["model_ckpt_data"], work_dir / "nvnmd_cnn/model.ckpt.data-00000-of-00001")
+        self.assertEqual(
+            out["model_ckpt_data"],
+            work_dir / "nvnmd_cnn/model.ckpt.data-00000-of-00001",
+        )
         self.assertEqual(out["model_ckpt_meta"], work_dir / "nvnmd_cnn/model.ckpt.meta")
-        self.assertEqual(out["model_ckpt_index"], work_dir / "nvnmd_cnn/model.ckpt.index")
+        self.assertEqual(
+            out["model_ckpt_index"], work_dir / "nvnmd_cnn/model.ckpt.index"
+        )
         self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
         self.assertEqual(out["log"], work_dir / "train.log")
 
         calls = [
             call(["dp", "train-nvnmd", train_cnn_script_name, "-s", "s1"]),
-            call(["dp", "train-nvnmd", train_qnn_script_name, "-s", "s2"])
+            call(["dp", "train-nvnmd", train_qnn_script_name, "-s", "s2"]),
         ]
         mocked_run.assert_has_calls(calls)
 
@@ -481,15 +486,20 @@ class TestRunNvNMDTrain(unittest.TestCase):
         self.assertEqual(out["script"], work_dir / train_cnn_script_name)
         self.assertEqual(out["cnn_model"], work_dir / "nvnmd_cnn/frozen_model.pb")
         self.assertEqual(out["qnn_model"], work_dir / "nvnmd_qnn/model.pb")
-        self.assertEqual(out["model_ckpt_data"], work_dir / "nvnmd_cnn/model.ckpt.data-00000-of-00001")
+        self.assertEqual(
+            out["model_ckpt_data"],
+            work_dir / "nvnmd_cnn/model.ckpt.data-00000-of-00001",
+        )
         self.assertEqual(out["model_ckpt_meta"], work_dir / "nvnmd_cnn/model.ckpt.meta")
-        self.assertEqual(out["model_ckpt_index"], work_dir / "nvnmd_cnn/model.ckpt.index")
+        self.assertEqual(
+            out["model_ckpt_index"], work_dir / "nvnmd_cnn/model.ckpt.index"
+        )
         self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
         self.assertEqual(out["log"], work_dir / "train.log")
 
         calls = [
             call(["dp", "train-nvnmd", train_cnn_script_name, "-s", "s1"]),
-            call(["dp", "train-nvnmd", train_qnn_script_name, "-s", "s2"])
+            call(["dp", "train-nvnmd", train_qnn_script_name, "-s", "s2"]),
         ]
         mocked_run.assert_has_calls(calls)
 
@@ -541,9 +551,14 @@ class TestRunNvNMDTrain(unittest.TestCase):
         self.assertEqual(out["script"], work_dir / train_cnn_script_name)
         self.assertEqual(out["cnn_model"], work_dir / "nvnmd_cnn/frozen_model.pb")
         self.assertEqual(out["qnn_model"], work_dir / "nvnmd_qnn/model.pb")
-        self.assertEqual(out["model_ckpt_data"], work_dir / "nvnmd_cnn/model.ckpt.data-00000-of-00001")
+        self.assertEqual(
+            out["model_ckpt_data"],
+            work_dir / "nvnmd_cnn/model.ckpt.data-00000-of-00001",
+        )
         self.assertEqual(out["model_ckpt_meta"], work_dir / "nvnmd_cnn/model.ckpt.meta")
-        self.assertEqual(out["model_ckpt_index"], work_dir / "nvnmd_cnn/model.ckpt.index")
+        self.assertEqual(
+            out["model_ckpt_index"], work_dir / "nvnmd_cnn/model.ckpt.index"
+        )
         self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
         self.assertEqual(out["log"], work_dir / "train.log")
 
@@ -556,7 +571,7 @@ class TestRunNvNMDTrain(unittest.TestCase):
                     "model.ckpt",
                     train_cnn_script_name,
                     "-s",
-                    "s1"
+                    "s1",
                 ]
             )
         ]
@@ -619,6 +634,7 @@ class TestRunNvNMDTrain(unittest.TestCase):
             jdata = json.load(fp)
             self.assertDictEqual(jdata, self.expected_odict_v2)
 
+
 class TestRunNvNMDTrainNullIterData(unittest.TestCase):
     def setUp(self):
         self.atom_name = "foo"
@@ -678,7 +694,7 @@ class TestRunNvNMDTrainNullIterData(unittest.TestCase):
                     "auto_prob": "prob_sys_size",
                 },
                 "disp_file": "lcurve.out",
-                "save_ckpt": "model.ckpt"
+                "save_ckpt": "model.ckpt",
             },
             "learning_rate": {
                 "start_lr": 1.0,
@@ -747,15 +763,20 @@ class TestRunNvNMDTrainNullIterData(unittest.TestCase):
         self.assertEqual(out["script"], work_dir / train_cnn_script_name)
         self.assertEqual(out["cnn_model"], work_dir / "nvnmd_cnn/frozen_model.pb")
         self.assertEqual(out["qnn_model"], work_dir / "nvnmd_qnn/model.pb")
-        self.assertEqual(out["model_ckpt_data"], work_dir / "nvnmd_cnn/model.ckpt.data-00000-of-00001")
+        self.assertEqual(
+            out["model_ckpt_data"],
+            work_dir / "nvnmd_cnn/model.ckpt.data-00000-of-00001",
+        )
         self.assertEqual(out["model_ckpt_meta"], work_dir / "nvnmd_cnn/model.ckpt.meta")
-        self.assertEqual(out["model_ckpt_index"], work_dir / "nvnmd_cnn/model.ckpt.index")
+        self.assertEqual(
+            out["model_ckpt_index"], work_dir / "nvnmd_cnn/model.ckpt.index"
+        )
         self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
         self.assertEqual(out["log"], work_dir / "train.log")
 
         calls = [
             call(["dp", "train-nvnmd", train_cnn_script_name, "-s", "s1"]),
-            call(["dp", "train-nvnmd", train_qnn_script_name, "-s", "s2"])
+            call(["dp", "train-nvnmd", train_qnn_script_name, "-s", "s2"]),
         ]
         mocked_run.assert_has_calls(calls)
 

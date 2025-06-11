@@ -1,10 +1,10 @@
 import glob
+import itertools
 import json
 import logging
 import os
 import random
 import re
-import itertools
 from pathlib import (
     Path,
 )
@@ -16,6 +16,9 @@ from typing import (
 )
 
 import numpy as np
+from ase.io import (
+    read,
+)
 from dargs import (
     Argument,
     ArgumentEncoder,
@@ -44,6 +47,9 @@ from dpgen2.constants import (
     plm_output_name,
     pytorch_model_name_pattern,
 )
+from dpgen2.op.run_caly_model_devi import (
+    write_model_devi_out,
+)
 from dpgen2.utils import (
     BinaryFileInput,
     set_directory,
@@ -51,10 +57,6 @@ from dpgen2.utils import (
 from dpgen2.utils.run_command import (
     run_command,
 )
-from dpgen2.op.run_caly_model_devi import (
-    write_model_devi_out,
-)
-from ase.io import read
 
 
 class RunNvNMD(OP):
@@ -151,9 +153,7 @@ class RunNvNMD(OP):
                 try:
                     Path(iname).symlink_to(ii)
                 except:
-                    logging.warning(
-                        "failed to link %s, maybe already linked" % iname
-                    )
+                    logging.warning("failed to link %s, maybe already linked" % iname)
                     pass
             # link models
             model_names = []
@@ -168,7 +168,7 @@ class RunNvNMD(OP):
                             "failed to link %s, maybe already linked" % mname
                         )
                         pass
-                    
+
                 elif ext == ".pt":
                     # freeze model
                     mname = pytorch_model_name_pattern % (idx)
@@ -189,13 +189,22 @@ class RunNvNMD(OP):
                 [
                     " ".join(
                         [
-                            "cp", str(model_name), "model.pb", 
+                            "cp",
+                            str(model_name),
+                            "model.pb",
                             "&&",
-                            command, "-i", lmp_input_name,
-                            "-log", lmp_log_name,
-                            "-v", "rerun", "%d"%i, 
-                            "&&", 
-                            "cp", lmp_traj_name, lmp_traj_name+".%d"%i
+                            command,
+                            "-i",
+                            lmp_input_name,
+                            "-log",
+                            lmp_log_name,
+                            "-v",
+                            "rerun",
+                            "%d" % i,
+                            "&&",
+                            "cp",
+                            lmp_traj_name,
+                            lmp_traj_name + ".%d" % i,
                         ]
                     )
                     for i, model_name in enumerate(models)
@@ -230,9 +239,11 @@ class RunNvNMD(OP):
                     with open("job.json", "w") as f:
                         json.dump(data, f, indent=4)
             merge_pimd_files()
-           
+
             if os.path.exists(lmp_traj_name):
-                calc_model_devi([lmp_traj_name+f".{i}" for i in range(len(model_names))])
+                calc_model_devi(
+                    [lmp_traj_name + f".{i}" for i in range(len(model_names))]
+                )
 
         ret_dict = {
             "log": work_dir / lmp_log_name,
@@ -423,40 +434,51 @@ def merge_pimd_files():
                 with open(model_devi_file, "r") as f2:
                     f.write(f2.read())
 
+
 def calc_model_devi(
     traj_files,
-    fname = "model_devi.out",
+    fname="model_devi.out",
 ):
-  
     trajectories = []
     for f in traj_files:
-        traj = read(f, format='lammps-dump-text', index=':', order=True)
+        traj = read(f, format="lammps-dump-text", index=":", order=True)
         trajectories.append(traj)
-    
+
     num_frames = len(trajectories[0])
     for traj in trajectories:
         assert len(traj) == num_frames, "Not match"
-    
+
     devi = []
     for frame_idx in range(num_frames):
         frames = [traj[frame_idx] for traj in trajectories]
-        
+
         all_forces = [atoms.get_forces() for atoms in frames]
         all_errors = []
-        
+
         for atom_idx in range(len(frames[0])):
             forces = [forces_arr[atom_idx] for forces_arr in all_forces]
-            
+
             for a, b in itertools.combinations(forces, 2):
                 error = np.linalg.norm(a - b)
                 all_errors.append(error)
-            
+
         max_error = np.max(all_errors) if all_errors else 0.0
         min_error = np.min(all_errors) if all_errors else 0.0
-        avg_error = np.mean(all_errors) if all_errors else 0.0 
+        avg_error = np.mean(all_errors) if all_errors else 0.0
 
         # ase verion >= 3.26.0, please update ase using "pip install git+https://gitlab.com/ase/ase.git"
-        devi.append([trajectories[0][frame_idx].info['timestep'],0,0,0,max_error, min_error, avg_error,0])
-       
+        devi.append(
+            [
+                trajectories[0][frame_idx].info["timestep"],
+                0,
+                0,
+                0,
+                max_error,
+                min_error,
+                avg_error,
+                0,
+            ]
+        )
+
     devi = np.array(devi)
-    write_model_devi_out(devi, fname=fname) 
+    write_model_devi_out(devi, fname=fname)

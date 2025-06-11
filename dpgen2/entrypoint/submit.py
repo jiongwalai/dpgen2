@@ -104,16 +104,16 @@ from dpgen2.op import (
     PrepCalyInput,
     PrepCalyModelDevi,
     PrepDPTrain,
-    PrepNvNMDTrain,
     PrepLmp,
+    PrepNvNMDTrain,
     PrepRelax,
     RunCalyDPOptim,
     RunCalyModelDevi,
     RunDPTrain,
-    RunNvNMDTrain,
     RunLmp,
     RunLmpHDF5,
     RunNvNMD,
+    RunNvNMDTrain,
     RunRelax,
     RunRelaxHDF5,
     SelectConfs,
@@ -126,9 +126,9 @@ from dpgen2.superop import (
     PrepRunCaly,
     PrepRunDiffCSP,
     PrepRunDPTrain,
-    PrepRunNvNMDTrain,
     PrepRunFp,
     PrepRunLmp,
+    PrepRunNvNMDTrain,
 )
 from dpgen2.superop.caly_evo_step import (
     CalyEvoStep,
@@ -216,7 +216,7 @@ def make_concurrent_learning_op(
             prep_config=prep_explore_config,
             run_config=run_explore_config,
             upload_python_packages=upload_python_packages,
-        ) 
+        )
     elif "calypso" in explore_style:
         expl_mode = explore_style.split(":")[-1] if ":" in explore_style else "default"
         if expl_mode == "merge":
@@ -531,7 +531,7 @@ def workflow_concurrent_learning(
             else None
         )
         config["train"]["numb_models"] = 1
-    
+
     elif train_style == "dp-nvnmd":
         init_models_paths = config["train"].get("init_models_paths", None)
         numb_models = config["train"]["numb_models"]
@@ -540,7 +540,7 @@ def workflow_concurrent_learning(
                 f"{len(init_models_paths)} init models provided, which does "
                 "not match numb_models={numb_models}"
             )
-            
+
     else:
         raise RuntimeError(f"unknown params, train_style: {train_style}")
 

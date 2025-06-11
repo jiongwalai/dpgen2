@@ -1,9 +1,9 @@
+import copy
 import glob
 import json
 import logging
 import os
 import shutil
-import copy
 from pathlib import (
     Path,
 )
@@ -35,9 +35,9 @@ from dflow.python import (
 )
 
 from dpgen2.constants import (
-    train_script_name,
     train_cnn_script_name,
     train_qnn_script_name,
+    train_script_name,
     train_task_pattern,
 )
 from dpgen2.utils.chdir import (
@@ -55,42 +55,47 @@ def _make_train_command(
     init_model,
     train_args="",
 ):
- 
     # find checkpoint
-    if os.path.isfile("nvnmd_cnn/checkpoint") and not os.path.isfile("nvnmd_cnn/frozen_model.pb"):
+    if os.path.isfile("nvnmd_cnn/checkpoint") and not os.path.isfile(
+        "nvnmd_cnn/frozen_model.pb"
+    ):
         checkpoint = "nvnmd_cnn/model.ckpt"
     else:
         checkpoint = None
-        
+
     # case of restart
     if checkpoint is not None:
-        command = dp_command + ["train-nvnmd", "--restart", checkpoint, train_script_name] 
+        command = dp_command + [
+            "train-nvnmd",
+            "--restart",
+            checkpoint,
+            train_script_name,
+        ]
         return command
-    
+
     # case of init model
     assert checkpoint is None
     case_init_model = do_init_model
     if case_init_model:
-        
-        if isinstance(init_model, list):    # initialize from model.ckpt
-            #init_model = ".".join(str(init_model[0]).split('.')[:-1])
+        if isinstance(init_model, list):  # initialize from model.ckpt
+            # init_model = ".".join(str(init_model[0]).split('.')[:-1])
             for i in init_model:
-                if(os.path.exists(i)):
-                    shutil.copy(i, '.')
+                if os.path.exists(i):
+                    shutil.copy(i, ".")
             init_model = "model.ckpt"
             init_flag = "--init-model"
-        else:                               # initialize from frozen model
+        else:  # initialize from frozen model
             init_flag = "--init-frz-model"
-            
+
         command = dp_command + [
-                "train-nvnmd",
-                init_flag,
-                str(init_model),
-                train_script_name,
-            ]
+            "train-nvnmd",
+            init_flag,
+            str(init_model),
+            train_script_name,
+        ]
     else:
-        command = dp_command + ["train-nvnmd", train_script_name] 
-        
+        command = dp_command + ["train-nvnmd", train_script_name]
+
     command += train_args.split()
     return command
 
@@ -196,9 +201,9 @@ class RunNvNMDTrain(OP):
         task_name = ip["task_name"]
         task_path = ip["task_path"]
         init_model = ip["init_model"]
-        init_model_ckpt_data  = ip["init_model_ckpt_data"]
-        init_model_ckpt_meta  = ip["init_model_ckpt_meta"]
-        init_model_ckpt_index  = ip["init_model_ckpt_index"]
+        init_model_ckpt_data = ip["init_model_ckpt_data"]
+        init_model_ckpt_meta = ip["init_model_ckpt_meta"]
+        init_model_ckpt_index = ip["init_model_ckpt_index"]
         init_data = ip["init_data"]
         iter_data = ip["iter_data"]
         valid_data = ip["valid_data"]
@@ -217,7 +222,11 @@ class RunNvNMDTrain(OP):
             major_version = "2"
 
         # auto prob style
-        init_model_ckpt = [init_model_ckpt_meta, init_model_ckpt_data, init_model_ckpt_index]
+        init_model_ckpt = [
+            init_model_ckpt_meta,
+            init_model_ckpt_data,
+            init_model_ckpt_index,
+        ]
         do_init_model = RunNvNMDTrain.decide_init_model(
             config,
             init_model_ckpt if init_model_ckpt_data is not None else init_model,
@@ -244,10 +253,18 @@ class RunNvNMDTrain(OP):
             valid_data,
         )
         train_cnn_dict = RunNvNMDTrain.write_other_to_input_script(
-            train_dict, config, do_init_model, False, major_version,
+            train_dict,
+            config,
+            do_init_model,
+            False,
+            major_version,
         )
         train_qnn_dict = RunNvNMDTrain.write_other_to_input_script(
-            train_dict, config, do_init_model, True, major_version,
+            train_dict,
+            config,
+            do_init_model,
+            True,
+            major_version,
         )
 
         with set_directory(work_dir):
@@ -260,7 +277,7 @@ class RunNvNMDTrain(OP):
             # dump train script
             with open(train_cnn_script_name, "w") as fp:
                 json.dump(train_cnn_dict, fp, indent=4)
-                
+
             with open(train_qnn_script_name, "w") as fp:
                 json.dump(train_qnn_dict, fp, indent=4)
 
@@ -274,7 +291,7 @@ class RunNvNMDTrain(OP):
                 train_cnn_script_name,
                 do_init_model,
                 init_model_ckpt if init_model_ckpt_data is not None else init_model,
-                train_args = "-s s1",
+                train_args="-s s1",
             )
 
             if not RunNvNMDTrain.skip_training(
@@ -297,31 +314,35 @@ class RunNvNMDTrain(OP):
                         )
                     )
                     raise FatalError("dp train-nvnmd -s s1 failed")
-                fplog.write("#=================== train_cnn std out ===================\n")
+                fplog.write(
+                    "#=================== train_cnn std out ===================\n"
+                )
                 fplog.write(out)
-                fplog.write("#=================== train_cnn std err ===================\n")
+                fplog.write(
+                    "#=================== train_cnn std err ===================\n"
+                )
                 fplog.write(err)
-                
+
                 cnn_model_file = "nvnmd_cnn/frozen_model.pb"
                 model_ckpt_data_file = "nvnmd_cnn/model.ckpt.data-00000-of-00001"
                 model_ckpt_index_file = "nvnmd_cnn/model.ckpt.index"
                 model_ckpt_meta_file = "nvnmd_cnn/model.ckpt.meta"
                 lcurve_file = "nvnmd_cnn/lcurve.out"
-            
+
             else:
                 cnn_model_file = init_model
                 model_ckpt_data_file = ""
                 model_ckpt_index_file = ""
                 model_ckpt_meta_file = ""
                 lcurve_file = "nvnmd_qnn/lcurve.out"
-                
+
             # train qnn model
             command = _make_train_command(
                 dp_command,
                 train_qnn_script_name,
                 do_init_model,
                 init_model_ckpt if init_model_ckpt_data is not None else init_model,
-                train_args = "-s s2",
+                train_args="-s s2",
             )
 
             ret, out, err = run_command(command)
@@ -345,12 +366,12 @@ class RunNvNMDTrain(OP):
             fplog.write(out)
             fplog.write("#=================== train_qnn std err ===================\n")
             fplog.write(err)
-            
+
             qnn_model_file = "nvnmd_qnn/model.pb"
 
             if os.path.exists("input_v2_compat.json"):
                 shutil.copy2("input_v2_compat.json", train_script_name)
-                
+
             clean_before_quit()
 
         return OPIO(
@@ -377,7 +398,7 @@ class RunNvNMDTrain(OP):
         valid_data: Optional[Union[List[Path], Dict[str, List[Path]]]] = None,
     ):
         odict = idict.copy()
-        
+
         data_list = [str(ii) for ii in init_data] + [str(ii) for ii in iter_data]
         if major_version == "1":
             # v1 behavior

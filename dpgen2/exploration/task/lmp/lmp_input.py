@@ -114,9 +114,7 @@ def make_lmp_input(
             model_devi_file_name,
         )
     elif nvnmd_version is not None:
-        ret += "pair_style      nvnmd %s\n" % (
-            "model.pb" 
-        )
+        ret += "pair_style      nvnmd %s\n" % ("model.pb")
     else:
         # 1.x
         keywords = ""
@@ -151,7 +149,7 @@ def make_lmp_input(
         )
     ret += "restart         10000 dpgen.restart\n"
     ret += "\n"
-    if(nvnmd_version is not None):
+    if nvnmd_version is not None:
         ret += 'if "${rerun} > 0" then "jump SELF rerun"\n'
     if pka_e is None:
         ret += 'if "${restart} == 0" then "velocity        all create ${TEMP} %d"' % (
@@ -200,9 +198,9 @@ def make_lmp_input(
     ret += "\n"
     ret += "timestep        %f\n" % dt
     ret += "run             ${NSTEPS} upto\n"
-    if(nvnmd_version is not None):
-        ret += 'jump SELF end\n'
-        ret += 'label rerun\n'
-        ret += 'rerun %s.0 dump x y z fx fy fz add yes\n' % lmp_traj_name
-        ret += 'label end\n' 
+    if nvnmd_version is not None:
+        ret += "jump SELF end\n"
+        ret += "label rerun\n"
+        ret += "rerun %s.0 dump x y z fx fy fz add yes\n" % lmp_traj_name
+        ret += "label end\n"
     return ret

@@ -19,11 +19,11 @@ from .prep_caly_model_devi import (
 from .prep_dp_train import (
     PrepDPTrain,
 )
-from .prep_nvnmd_train import (
-    PrepNvNMDTrain,
-)
 from .prep_lmp import (
     PrepLmp,
+)
+from .prep_nvnmd_train import (
+    PrepNvNMDTrain,
 )
 from .prep_relax import (
     PrepRelax,
@@ -37,9 +37,6 @@ from .run_caly_model_devi import (
 from .run_dp_train import (
     RunDPTrain,
 )
-from .run_nvnmd_train import (
-    RunNvNMDTrain,
-)
 from .run_lmp import (
     RunLmp,
     RunLmpHDF5,
@@ -47,7 +44,9 @@ from .run_lmp import (
 from .run_nvnmd import (
     RunNvNMD,
 )
-
+from .run_nvnmd_train import (
+    RunNvNMDTrain,
+)
 from .run_relax import (
     RunRelax,
     RunRelaxHDF5,

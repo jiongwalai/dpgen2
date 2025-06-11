@@ -58,14 +58,14 @@ from .prep_run_diffcsp import (
 from .prep_run_dp_train import (
     PrepRunDPTrain,
 )
-from .prep_run_nvnmd_train import (
-    PrepRunNvNMDTrain,
-)
 from .prep_run_fp import (
     PrepRunFp,
 )
 from .prep_run_lmp import (
     PrepRunLmp,
+)
+from .prep_run_nvnmd_train import (
+    PrepRunNvNMDTrain,
 )
 
 block_default_optional_parameter = {
@@ -364,9 +364,15 @@ def _block_cl(
         "models"
     ]
     if isinstance(prep_run_dp_train_op, PrepRunNvNMDTrain):
-        block_steps.outputs.artifacts["models_ckpt_meta"]._from = prep_run_dp_train.outputs.artifacts["models_ckpt_meta"]
-        block_steps.outputs.artifacts["models_ckpt_data"]._from = prep_run_dp_train.outputs.artifacts["models_ckpt_data"]
-        block_steps.outputs.artifacts["models_ckpt_index"]._from = prep_run_dp_train.outputs.artifacts["models_ckpt_index"]
+        block_steps.outputs.artifacts[
+            "models_ckpt_meta"
+        ]._from = prep_run_dp_train.outputs.artifacts["models_ckpt_meta"]
+        block_steps.outputs.artifacts[
+            "models_ckpt_data"
+        ]._from = prep_run_dp_train.outputs.artifacts["models_ckpt_data"]
+        block_steps.outputs.artifacts[
+            "models_ckpt_index"
+        ]._from = prep_run_dp_train.outputs.artifacts["models_ckpt_index"]
     block_steps.outputs.artifacts["iter_data"]._from = collect_data.outputs.artifacts[
         "iter_data"
     ]

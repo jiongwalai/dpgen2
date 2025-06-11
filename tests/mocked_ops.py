@@ -40,11 +40,11 @@ from dpgen2.constants import (
     lmp_model_devi_name,
     lmp_task_pattern,
     lmp_traj_name,
-    model_name_pattern,
-    model_ckpt_pattern,
-    model_ckpt_meta_pattern,
     model_ckpt_data_pattern,
     model_ckpt_index_pattern,
+    model_ckpt_meta_pattern,
+    model_ckpt_pattern,
+    model_name_pattern,
     train_log_name,
     train_script_name,
     train_task_pattern,
@@ -96,14 +96,14 @@ from dpgen2.op.run_caly_model_devi import (
 from dpgen2.op.run_dp_train import (
     RunDPTrain,
 )
-from dpgen2.op.run_nvnmd_train import (
-    RunNvNMDTrain,
-)
 from dpgen2.op.run_lmp import (
     RunLmp,
 )
 from dpgen2.op.run_nvnmd import (
     RunNvNMD,
+)
+from dpgen2.op.run_nvnmd_train import (
+    RunNvNMDTrain,
 )
 from dpgen2.op.select_confs import (
     SelectConfs,
@@ -128,7 +128,7 @@ def make_mocked_init_models(numb_models):
 def make_mocked_init_models_ckpt(numb_models):
     tmp_models_ckpt = []
     for ii in range(numb_models):
-        dir = Path(model_ckpt_pattern %ii)
+        dir = Path(model_ckpt_pattern % ii)
         dir.mkdir(exist_ok=True, parents=True)
         ff_meta = Path(model_ckpt_meta_pattern % ii)
         ff_meta.write_text(f"This is init model ckpt meta {ii}")
@@ -476,13 +476,13 @@ class MockedRunNvNMDTrain(RunNvNMDTrain):
             )
 
             copyfile(script, oscript)
-            
+
         cnn_dir = Path("nvnmd_cnn")
         qnn_dir = Path("nvnmd_qnn")
         cnn_model = cnn_dir / Path("frozen_model.pb")
         qnn_model = qnn_dir / Path("model.pb")
-        model_ckpt_meta_file  = cnn_dir / Path("model.ckpt.meta")
-        model_ckpt_data_file  = cnn_dir / Path("model.ckpt.data-00000-of-00001")
+        model_ckpt_meta_file = cnn_dir / Path("model.ckpt.meta")
+        model_ckpt_data_file = cnn_dir / Path("model.ckpt.data-00000-of-00001")
         model_ckpt_index_file = cnn_dir / Path("model.ckpt.index")
         lcurve = cnn_dir / Path("lcurve.out")
         log = Path("log")
@@ -492,13 +492,13 @@ class MockedRunNvNMDTrain(RunNvNMDTrain):
             f.write(f"init_model {str(init_model)} OK\n")
         assert init_model_ckpt_meta.exists()
         with log.open("a") as f:
-            f.write(f"init_model_ckpt_meta {str(init_model_ckpt_meta)} OK\n") 
+            f.write(f"init_model_ckpt_meta {str(init_model_ckpt_meta)} OK\n")
         assert init_model_ckpt_data.exists()
         with log.open("a") as f:
-            f.write(f"init_model_ckpt_data {str(init_model_ckpt_data)} OK\n") 
+            f.write(f"init_model_ckpt_data {str(init_model_ckpt_data)} OK\n")
         assert init_model_ckpt_index.exists()
         with log.open("a") as f:
-            f.write(f"init_model_ckpt_index {str(init_model_ckpt_index)} OK\n") 
+            f.write(f"init_model_ckpt_index {str(init_model_ckpt_index)} OK\n")
         for ii in jtmp["data"]:
             assert Path(ii).exists()
             assert (ii in init_data_str) or (ii in iter_data_str)
@@ -508,7 +508,6 @@ class MockedRunNvNMDTrain(RunNvNMDTrain):
         with log.open("a") as f:
             f.write(f"script {str(script)} OK\n")
 
-        
         cnn_dir.mkdir(exist_ok=True, parents=True)
         with cnn_model.open("w") as f:
             f.write("read from init model: \n")
@@ -622,13 +621,13 @@ class MockedRunNvNMDTrainNoneInitModel(RunNvNMDTrain):
             )
 
             copyfile(script, oscript)
-        
+
         cnn_dir = Path("nvnmd_cnn")
         qnn_dir = Path("nvnmd_qnn")
         cnn_model = cnn_dir / Path("frozen_model.pb")
         qnn_model = qnn_dir / Path("model.pb")
-        model_ckpt_meta_file  = cnn_dir / Path("model.ckpt.meta")
-        model_ckpt_data_file  = cnn_dir / Path("model.ckpt.data-00000-of-00001")
+        model_ckpt_meta_file = cnn_dir / Path("model.ckpt.meta")
+        model_ckpt_data_file = cnn_dir / Path("model.ckpt.data-00000-of-00001")
         model_ckpt_index_file = cnn_dir / Path("model.ckpt.index")
         lcurve = cnn_dir / Path("lcurve.out")
         log = Path("log")
@@ -667,7 +666,7 @@ class MockedRunNvNMDTrainNoneInitModel(RunNvNMDTrain):
                 "qnn_model": work_dir / qnn_model,
                 "model_ckpt_data": work_dir / model_ckpt_meta_file,
                 "model_ckpt_meta": work_dir / model_ckpt_meta_file,
-                "model_ckpt_index": work_dir / model_ckpt_meta_file, 
+                "model_ckpt_index": work_dir / model_ckpt_meta_file,
                 "lcurve": work_dir / lcurve,
                 "log": work_dir / log,
             }

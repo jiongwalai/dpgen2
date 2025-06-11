@@ -87,18 +87,29 @@ class TestRunNvNMD(unittest.TestCase):
         self.assertEqual(out["traj"], work_dir / lmp_traj_name)
         self.assertEqual(out["model_devi"], work_dir / lmp_model_devi_name)
         # check call
-        models = ["models/path/model_%d.pb"%i for i in range(len(self.models))]
+        models = ["models/path/model_%d.pb" % i for i in range(len(self.models))]
         calls = [
             call(
                 " ; ".join(
                     [
                         " ".join(
                             [
-                                "cp", model_name, "model.pb", "&&",
-                                "mylmp", "-i", lmp_input_name,
-                                "-log", lmp_log_name,
-                                "-v", "rerun", "%d"%i, "&&", 
-                                "cp", lmp_traj_name, lmp_traj_name+".%d"%i
+                                "cp",
+                                model_name,
+                                "model.pb",
+                                "&&",
+                                "mylmp",
+                                "-i",
+                                lmp_input_name,
+                                "-log",
+                                lmp_log_name,
+                                "-v",
+                                "rerun",
+                                "%d" % i,
+                                "&&",
+                                "cp",
+                                lmp_traj_name,
+                                lmp_traj_name + ".%d" % i,
                             ]
                         )
                         for i, model_name in enumerate(models)
@@ -132,18 +143,29 @@ class TestRunNvNMD(unittest.TestCase):
                 )
             )
         # check call
-        models = ["models/path/model_%d.pb"%i for i in range(len(self.models))]
+        models = ["models/path/model_%d.pb" % i for i in range(len(self.models))]
         calls = [
             call(
                 " ; ".join(
                     [
                         " ".join(
                             [
-                                "cp", model_name, "model.pb", "&&",
-                                "mylmp", "-i", lmp_input_name,
-                                "-log", lmp_log_name,
-                                "-v", "rerun", "%d"%i, "&&", 
-                                "cp", lmp_traj_name, lmp_traj_name+".%d"%i
+                                "cp",
+                                model_name,
+                                "model.pb",
+                                "&&",
+                                "mylmp",
+                                "-i",
+                                lmp_input_name,
+                                "-log",
+                                lmp_log_name,
+                                "-v",
+                                "rerun",
+                                "%d" % i,
+                                "&&",
+                                "cp",
+                                lmp_traj_name,
+                                lmp_traj_name + ".%d" % i,
                             ]
                         )
                         for i, model_name in enumerate(models)
