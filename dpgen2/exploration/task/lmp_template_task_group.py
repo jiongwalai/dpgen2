@@ -223,7 +223,7 @@ def revise_lmp_input_plm(lmp_lines, in_plm, out_plm="output.plumed"):
 def revise_lmp_input_rerun(lmp_lines):
     lmp_lines.append("jump SELF end")
     lmp_lines.append("label rerun")
-    lmp_lines.append(f"rerun {lmp_traj_name}.0 dump x y z fx fy fz add yes")
+    lmp_lines.append(f"rerun {lmp_traj_name}_0 dump x y z fx fy fz add yes")
     lmp_lines.append("label end")
     return lmp_lines
 
