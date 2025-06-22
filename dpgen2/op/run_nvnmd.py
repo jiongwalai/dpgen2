@@ -215,7 +215,7 @@ class RunNvNMD(OP):
                 
 
         ret_dict = {
-            "log": work_dir / lmp_log_name,
+            "log": work_dir / ("%d_%s"%(0, lmp_log_name)),
             "traj": work_dir / ("%d_%s" % (0, lmp_traj_name)),
             "model_devi": self.get_model_devi(work_dir / lmp_model_devi_name),
         }
@@ -253,7 +253,7 @@ def set_lmp_models(lmp_input_name: str, model_names: List[str]):
         
         lmp_input_lines[idx] = " ".join(new_line_split) + "\n"
 
-        with open(lmp_input_name + ".%d"%(ii), "w", encoding="utf8") as f:
+        with open("%d_%s"%(ii,lmp_input_name), "w", encoding="utf8") as f:
             f.write("".join(lmp_input_lines))
 
 

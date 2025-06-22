@@ -141,7 +141,7 @@ def make_lmp_input(
         if nvnmd_version is None:
             ret += "dump            1 all custom ${DUMP_FREQ} traj/*.lammpstrj id type x y z fx fy fz\n"
         else:
-            ret += "dump            1 all custom ${DUMP_FREQ} traj_${rerun}/*.lammpstrj id type x y z fx fy fz\n"
+            ret += "dump            1 all custom ${DUMP_FREQ} ${rerun}_traj/*.lammpstrj id type x y z fx fy fz\n"
     else:
         lmp_traj_file_name = (
             lmp_pimd_traj_name % pimd_bead if pimd_bead is not None else lmp_traj_name
@@ -153,7 +153,7 @@ def make_lmp_input(
             )
         else:
             ret += (
-                "dump            1 all custom ${DUMP_FREQ} %s_${rerun} id type x y z fx fy fz\n"
+                "dump            1 all custom ${DUMP_FREQ} ${rerun}_%s id type x y z fx fy fz\n"
                 % lmp_traj_file_name
             )
     ret += "restart         10000 dpgen.restart\n"
@@ -211,8 +211,8 @@ def make_lmp_input(
         ret += "jump SELF end\n"
         ret += "label rerun\n"
         if trj_seperate_files:
-            ret += "rerun traj_0/*.lammpstrj dump x y z fx fy fz add yes\n"
+            ret += "rerun 0_traj/*.lammpstrj dump x y z fx fy fz add yes\n"
         else:
-            ret += "rerun %s_0 dump x y z fx fy fz add yes\n" % lmp_traj_name
+            ret += "rerun 0_%s dump x y z fx fy fz add yes\n" % lmp_traj_name
         ret += "label end\n"
     return ret
