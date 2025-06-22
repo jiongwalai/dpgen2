@@ -11,6 +11,7 @@ from typing import (
     Optional,
     Set,
     Type,
+    Union,
 )
 
 from dflow import (
@@ -60,7 +61,7 @@ class PrepRunDPTrain(Steps):
         self,
         name: str,
         prep_train_op: Type[OP],
-        run_train_op: Type[OP],
+        run_train_op: Type[Union[RunDPTrain, RunNvNMDTrain]],
         prep_config: Optional[dict] = None,
         run_config: Optional[dict] = None,
         upload_python_packages: Optional[List[os.PathLike]] = None,
