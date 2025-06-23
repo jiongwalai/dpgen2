@@ -87,7 +87,7 @@ class TestRunNvNMD(unittest.TestCase):
         )
         work_dir = Path(self.task_name)
         # check output
-        self.assertEqual(out["log"], work_dir / lmp_log_name)
+        self.assertEqual(out["log"], work_dir / ("0_%s"%lmp_log_name))
         self.assertEqual(out["traj"], work_dir / ("0_%s"%lmp_traj_name))
         self.assertEqual(out["model_devi"], work_dir / lmp_model_devi_name)
         # check call
