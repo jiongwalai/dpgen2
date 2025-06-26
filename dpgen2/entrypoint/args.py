@@ -28,11 +28,11 @@ from dpgen2.fp import (
 from dpgen2.op.run_dp_train import (
     RunDPTrain,
 )
-from dpgen2.op.run_nvnmd_train import (
-    RunNvNMDTrain,
-)
 from dpgen2.op.run_lmp import (
     RunLmp,
+)
+from dpgen2.op.run_nvnmd_train import (
+    RunNvNMDTrain,
 )
 from dpgen2.utils import (
     normalize_step_dict,
@@ -129,6 +129,7 @@ def dp_train_args():
         ),
     ]
 
+
 def nvnmd_train_args():
     doc_numb_models = "Number of models trained for evaluating the model deviation"
     doc_config = "Configuration of training"
@@ -141,9 +142,9 @@ def nvnmd_train_args():
         Argument(
             "config",
             dict,
-            RunNvNMDTrain.training_args(),
+            RunDPTrain.training_args(),
             optional=True,
-            default=RunNvNMDTrain.normalize_config({}),
+            default=RunDPTrain.normalize_config({}),
             doc=doc_numb_models,
         ),
         Argument("numb_models", int, optional=True, default=4, doc=doc_numb_models),
@@ -173,6 +174,7 @@ def nvnmd_train_args():
             doc=doc_optional_files,
         ),
     ]
+
 
 def variant_train():
     doc = "the type of the training"
@@ -502,7 +504,7 @@ def variant_explore():
         "type",
         [
             Argument("lmp", dict, lmp_args(), doc=doc_lmp),
-            Argument("nvnmd", dict, lmp_args(), doc=doc_lmp),
+            Argument("lmp-nvnmd", dict, lmp_args(), doc=doc_lmp),
             Argument("calypso", dict, caly_args(), doc=doc_calypso),
             Argument("calypso:default", dict, caly_args(), doc=doc_calypso),
             Argument("calypso:merge", dict, caly_args(), doc=doc_calypso),
