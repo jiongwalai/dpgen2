@@ -174,7 +174,6 @@ class RunNvNMD(OP):
             set_lmp_models(lmp_input_name, model_names)
 
             # run lmp
-            #for ii in range(1):
             for ii in range(len(model_names)):
                 commands = " ".join(
                     [
