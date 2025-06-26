@@ -22,6 +22,9 @@ from .prep_dp_train import (
 from .prep_lmp import (
     PrepLmp,
 )
+from .prep_nvnmd_train import (
+    PrepNvNMDTrain,
+)
 from .prep_relax import (
     PrepRelax,
 )

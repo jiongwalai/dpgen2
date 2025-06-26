@@ -499,6 +499,7 @@ class MockedRunNvNMDTrain(RunNvNMDTrain):
         with log.open("a") as f:
             f.write(f"script {str(script)} OK\n")
 
+
         cnn_dir.mkdir(exist_ok=True, parents=True)
         with cnn_model.open("w") as f:
             f.write("read from init model: \n")
