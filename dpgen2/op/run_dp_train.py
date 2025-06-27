@@ -1,3 +1,4 @@
+import copy
 import glob
 import json
 import logging
@@ -5,7 +6,6 @@ import math
 import os
 import random
 import shutil
-import copy
 from pathlib import (
     Path,
 )
@@ -440,15 +440,14 @@ class RunDPTrain(OP):
                 raise RuntimeError(
                     "unsupported DeePMD-kit major version", major_version
                 )
-                
+
         if do_quantized:
             if major_version == "1":
                 odict["training"]["stop_batch"] = 0
             elif major_version == "2":
                 odict["training"]["numb_steps"] = 0
-                
-        return odict
 
+        return odict
 
     @staticmethod
     def skip_training(

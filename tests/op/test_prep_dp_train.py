@@ -231,7 +231,7 @@ class TestPrepDPTrain(unittest.TestCase):
                     template_script_hybrid,
                     template_script_se_e2_a,
                     template_script_nvnmd_v1,
-                    template_script_nvnmd_v0
+                    template_script_nvnmd_v0,
                 ],
                 "numb_models": self.numb_models,
             }

@@ -123,7 +123,9 @@ class PrepDPTrain(OP):
             if "model_dict" in jtmp["model"]:
                 for d in jtmp["model"]["model_dict"].values():
                     if isinstance(d["descriptor"], str):
-                        self._set_desc_seed(jtmp["model"]["shared_dict"][d["descriptor"]])
+                        self._set_desc_seed(
+                            jtmp["model"]["shared_dict"][d["descriptor"]]
+                        )
                     d["fitting_net"]["seed"] = random.randrange(sys.maxsize) % (2**32)
             else:
                 self._set_desc_seed(jtmp["model"]["descriptor"])

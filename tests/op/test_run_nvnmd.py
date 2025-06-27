@@ -33,10 +33,7 @@ from dpgen2.constants import (
     lmp_traj_name,
     model_name_pattern,
 )
-from dpgen2.op.run_lmp import (
-    get_ele_temp,
-    set_models
-)
+from dpgen2.op.run_lmp import get_ele_temp, set_models
 from dpgen2.op.run_nvnmd import (
     RunNvNMD,
     merge_pimd_files,
@@ -87,8 +84,8 @@ class TestRunNvNMD(unittest.TestCase):
         )
         work_dir = Path(self.task_name)
         # check output
-        self.assertEqual(out["log"], work_dir / ("0_%s"%lmp_log_name))
-        self.assertEqual(out["traj"], work_dir / ("0_%s"%lmp_traj_name))
+        self.assertEqual(out["log"], work_dir / ("0_%s" % lmp_log_name))
+        self.assertEqual(out["traj"], work_dir / ("0_%s" % lmp_traj_name))
         self.assertEqual(out["model_devi"], work_dir / lmp_model_devi_name)
         # check call
         models = ["models/path/model_%d.pb" % i for i in range(len(self.models))]
@@ -104,12 +101,12 @@ class TestRunNvNMD(unittest.TestCase):
                         "%d_%s" % (ii, lmp_log_name),
                         "-v",
                         "rerun",
-                        "%d" % ii 
+                        "%d" % ii,
                     ]
                 ),
                 shell=True,
-            )    
-        for ii in range(len(models))
+            )
+            for ii in range(len(models))
         ]
         mocked_run.assert_has_calls(calls)
         # check input files are correctly linked
@@ -148,12 +145,12 @@ class TestRunNvNMD(unittest.TestCase):
                         "%d_%s" % (ii, lmp_log_name),
                         "-v",
                         "rerun",
-                        "%d" % ii 
+                        "%d" % ii,
                     ]
                 ),
                 shell=True,
-            )    
-        for ii in range(1)
+            )
+            for ii in range(1)
         ]
         mocked_run.assert_has_calls(calls)
 

@@ -65,7 +65,6 @@ from .prep_run_lmp import (
     PrepRunLmp,
 )
 
-
 block_default_optional_parameter = {
     "data_mixed_type": False,
     "finetune_mode": "no",

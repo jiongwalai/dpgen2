@@ -198,7 +198,7 @@ class TestRunDPTrain(unittest.TestCase):
                 "batch_size": "auto",
                 "auto_prob_style": "prob_sys_size",
                 "disp_file": "lcurve.out",
-                "save_ckpt": "model.ckpt"
+                "save_ckpt": "model.ckpt",
             },
             "learning_rate": {
                 "start_lr": 1.0,

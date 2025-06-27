@@ -40,15 +40,15 @@ from dpgen2.constants import (
     train_script_name,
     train_task_pattern,
 )
+from dpgen2.op.run_dp_train import (
+    RunDPTrain,
+    _expand_all_multi_sys_to_sys,
+)
 from dpgen2.utils.chdir import (
     set_directory,
 )
 from dpgen2.utils.run_command import (
     run_command,
-)
-from dpgen2.op.run_dp_train import (
-    RunDPTrain,
-    _expand_all_multi_sys_to_sys,
 )
 
 
@@ -190,9 +190,15 @@ class RunNvNMDTrain(OP):
         task_path = ip["task_path"]
         init_model = ip["init_model"]
         init_frz_model = ip["init_model"] / "frozen_model.pb" if init_model else None
-        init_model_ckpt_data = ip["init_model"] / "model.ckpt.data-00000-of-00001" if init_model else None
-        init_model_ckpt_meta = ip["init_model"] / "model.ckpt.meta" if init_model else None
-        init_model_ckpt_index = ip["init_model"] / "model.ckpt.index" if init_model else None
+        init_model_ckpt_data = (
+            ip["init_model"] / "model.ckpt.data-00000-of-00001" if init_model else None
+        )
+        init_model_ckpt_meta = (
+            ip["init_model"] / "model.ckpt.meta" if init_model else None
+        )
+        init_model_ckpt_index = (
+            ip["init_model"] / "model.ckpt.index" if init_model else None
+        )
         init_data = ip["init_data"]
         iter_data = ip["iter_data"]
         valid_data = ip["valid_data"]
@@ -242,11 +248,7 @@ class RunNvNMDTrain(OP):
             valid_data,
         )
         train_cnn_dict = RunDPTrain.write_other_to_input_script(
-            train_dict,
-            config,
-            do_init_model,
-            major_version,
-            False
+            train_dict, config, do_init_model, major_version, False
         )
         train_qnn_dict = RunDPTrain.write_other_to_input_script(
             train_dict,
@@ -264,10 +266,10 @@ class RunNvNMDTrain(OP):
                 fplog.close()
 
             # dump train script
-            
+
             with open(train_script_name, "w") as fp:
                 json.dump(train_cnn_dict, fp, indent=4)
-                
+
             with open(train_cnn_script_name, "w") as fp:
                 json.dump(train_cnn_dict, fp, indent=4)
 
@@ -321,11 +323,10 @@ class RunNvNMDTrain(OP):
                 model_ckpt_index_file = "nvnmd_cnn/model.ckpt.index"
                 model_ckpt_meta_file = "nvnmd_cnn/model.ckpt.meta"
                 lcurve_file = "nvnmd_cnn/lcurve.out"
-                
+
                 if os.path.exists("input_v2_compat.json"):
                     shutil.copy2("input_v2_compat.json", train_script_name)
-                    
-                
+
             else:
                 cnn_model_file = init_model
                 model_ckpt_data_file = ""
@@ -367,7 +368,7 @@ class RunNvNMDTrain(OP):
             qnn_model_file = "nvnmd_qnn/model.pb"
 
             clean_before_quit()
-            
+
             # copy all models files to the output directory
             os.makedirs("nvnmd_models", exist_ok=True)
             if os.path.exists(cnn_model_file):
@@ -380,7 +381,7 @@ class RunNvNMDTrain(OP):
                 shutil.copy(model_ckpt_data_file, "nvnmd_models")
             if os.path.exists(model_ckpt_index_file):
                 shutil.copy(model_ckpt_index_file, "nvnmd_models")
-            
+
             model_files = "nvnmd_models"
 
         return OPIO(

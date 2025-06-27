@@ -127,11 +127,16 @@ def make_mocked_init_nvnmd_models(numb_models):
     for ii in range(numb_models):
         nvnmd_models_dir = Path(nvnmd_model_name_pattern % ii)
         nvnmd_models_dir.mkdir(exist_ok=True, parents=True)
-        for jj in ("frozen_model.pb", "model.ckpt.meta", "model.ckpt.data", "model.ckpt.index"):
+        for jj in (
+            "frozen_model.pb",
+            "model.ckpt.meta",
+            "model.ckpt.data",
+            "model.ckpt.index",
+        ):
             ff = nvnmd_models_dir / jj
             ff.write_text(f"This is init {jj} {ii}")
         tmp_models.append(nvnmd_models_dir)
-    return tmp_models 
+    return tmp_models
 
 
 def make_mocked_init_data():
@@ -423,11 +428,11 @@ class MockedRunNvNMDTrain(RunNvNMDTrain):
         assert re.match("task.[0-9][0-9][0-9][0-9]", ip["task_name"])
         task_id = int(ip["task_name"].split(".")[1])
         assert ip["task_name"] in str(ip["task_path"])
-        init_frz_model = ip["init_model"] / "frozen_model.pb" 
-        init_model_ckpt_data = ip["init_model"] / "model.ckpt.data" 
-        init_model_ckpt_meta = ip["init_model"] / "model.ckpt.meta" 
-        init_model_ckpt_index = ip["init_model"] / "model.ckpt.index" 
-        
+        init_frz_model = ip["init_model"] / "frozen_model.pb"
+        init_model_ckpt_data = ip["init_model"] / "model.ckpt.data"
+        init_model_ckpt_meta = ip["init_model"] / "model.ckpt.meta"
+        init_model_ckpt_index = ip["init_model"] / "model.ckpt.index"
+
         assert ".pb" in str(init_frz_model)
         assert "ckpt.meta" in str(init_model_ckpt_meta)
         assert "ckpt.data" in str(init_model_ckpt_data)
@@ -499,7 +504,6 @@ class MockedRunNvNMDTrain(RunNvNMDTrain):
         with log.open("a") as f:
             f.write(f"script {str(script)} OK\n")
 
-
         cnn_dir.mkdir(exist_ok=True, parents=True)
         with cnn_model.open("w") as f:
             f.write("read from init model: \n")
@@ -513,7 +517,7 @@ class MockedRunNvNMDTrain(RunNvNMDTrain):
         with model_ckpt_index_file.open("w") as f:
             f.write("read from init model: \n")
             f.write(init_model_ckpt_index.read_text() + "\n")
-            
+
         qnn_dir.mkdir(exist_ok=True, parents=True)
         with qnn_model.open("w") as f:
             f.write("read from init model: \n")
@@ -529,7 +533,7 @@ class MockedRunNvNMDTrain(RunNvNMDTrain):
         shutil.copy(model_ckpt_meta_file, "nvnmd_models")
         shutil.copy(model_ckpt_data_file, "nvnmd_models")
         shutil.copy(model_ckpt_index_file, "nvnmd_models")
-        
+
         os.chdir(cwd)
 
         return OPIO(
@@ -643,7 +647,7 @@ class MockedRunNvNMDTrainNoneInitModel(RunNvNMDTrain):
             f.write("read from init model ckpt: \n")
         with model_ckpt_index_file.open("w") as f:
             f.write("read from init model ckpt: \n")
-            
+
         qnn_dir.mkdir(exist_ok=True, parents=True)
         with qnn_model.open("w") as f:
             f.write("read from init model: \n")
@@ -658,7 +662,7 @@ class MockedRunNvNMDTrainNoneInitModel(RunNvNMDTrain):
         shutil.copy(model_ckpt_meta_file, "nvnmd_models")
         shutil.copy(model_ckpt_data_file, "nvnmd_models")
         shutil.copy(model_ckpt_index_file, "nvnmd_models")
-        
+
         os.chdir(cwd)
 
         return OPIO(

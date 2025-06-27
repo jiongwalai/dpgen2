@@ -11,10 +11,10 @@ from pathlib import (
 )
 from typing import (
     List,
-    Union,
     Optional,
     Set,
     Tuple,
+    Union,
 )
 
 import numpy as np
@@ -141,7 +141,7 @@ class RunNvNMD(OP):
             # link input files
             for ii in input_files:
                 iname = ii.name
-                #Path(iname).symlink_to(ii)
+                # Path(iname).symlink_to(ii)
                 try:
                     Path(iname).symlink_to(ii)
                 except:
@@ -153,7 +153,7 @@ class RunNvNMD(OP):
                 ext = os.path.splitext(mm)[-1]
                 if ext == ".pb":
                     mname = model_name_pattern % (idx)
-                    #Path(mname).symlink_to(mm)
+                    # Path(mname).symlink_to(mm)
                     try:
                         Path(mname).symlink_to(mm)
                     except:
@@ -208,13 +208,12 @@ class RunNvNMD(OP):
 
             merge_pimd_files()
 
-            traj_files = glob.glob("*_%s"%lmp_traj_name)
+            traj_files = glob.glob("*_%s" % lmp_traj_name)
             if len(traj_files) > 1:
                 calc_model_devi(traj_files, lmp_model_devi_name)
-                
 
         ret_dict = {
-            "log": work_dir / ("%d_%s"%(0, lmp_log_name)),
+            "log": work_dir / ("%d_%s" % (0, lmp_log_name)),
             "traj": work_dir / ("%d_%s" % (0, lmp_traj_name)),
             "model_devi": self.get_model_devi(work_dir / lmp_model_devi_name),
         }
@@ -243,16 +242,16 @@ def set_lmp_models(lmp_input_name: str, model_names: List[str]):
     if idx is None:
         return
     new_line_split = lmp_input_lines[idx].split()
-    match_idx = find_only_one_key(new_line_split, ['model.pb'], raise_not_found=False) 
+    match_idx = find_only_one_key(new_line_split, ["model.pb"], raise_not_found=False)
     if match_idx is None:
         raise RuntimeError(f"last matching index should not be -1, terribly wrong ")
-    
+
     for ii, model_name in enumerate(model_names):
         new_line_split[match_idx] = model_name
-        
+
         lmp_input_lines[idx] = " ".join(new_line_split) + "\n"
 
-        with open("%d_%s"%(ii,lmp_input_name), "w", encoding="utf8") as f:
+        with open("%d_%s" % (ii, lmp_input_name), "w", encoding="utf8") as f:
             f.write("".join(lmp_input_lines))
 
 
@@ -275,8 +274,8 @@ def calc_model_devi(
     traj_files,
     fname="model_devi.out",
 ):
-    
-    from ase.io import read # type: ignore
+    from ase.io import read  # type: ignore
+
     trajectories = []
     for f in traj_files:
         traj = read(f, format="lammps-dump-text", index=":", order=True)
@@ -320,6 +319,7 @@ def calc_model_devi(
 
     devi = np.array(devi)
     write_model_devi_out(devi, fname=fname)
+
 
 def write_model_devi_out(devi: np.ndarray, fname: Union[str, Path], header: str = ""):
     assert devi.shape[1] == 8

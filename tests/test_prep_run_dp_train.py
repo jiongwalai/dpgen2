@@ -199,14 +199,25 @@ def check_run_train_nvnmd_output(
         iter_data,
         only_check_name=only_check_name,
     )
-    _check_model(tcase, "nvnmd_models/frozen_model.pb", cwd, init_model / "frozen_model.pb")
-    _check_model(tcase, "nvnmd_models/model.pb", cwd , init_model / "frozen_model.pb")
-    _check_model(tcase, "nvnmd_models/model.ckpt.meta", cwd, init_model / "model.ckpt.meta")
-    _check_model(tcase, "nvnmd_models/model.ckpt.data-00000-of-00001", cwd, init_model / "model.ckpt.data")
-    _check_model(tcase, "nvnmd_models/model.ckpt.index", cwd, init_model / "model.ckpt.index")
+    _check_model(
+        tcase, "nvnmd_models/frozen_model.pb", cwd, init_model / "frozen_model.pb"
+    )
+    _check_model(tcase, "nvnmd_models/model.pb", cwd, init_model / "frozen_model.pb")
+    _check_model(
+        tcase, "nvnmd_models/model.ckpt.meta", cwd, init_model / "model.ckpt.meta"
+    )
+    _check_model(
+        tcase,
+        "nvnmd_models/model.ckpt.data-00000-of-00001",
+        cwd,
+        init_model / "model.ckpt.data",
+    )
+    _check_model(
+        tcase, "nvnmd_models/model.ckpt.index", cwd, init_model / "model.ckpt.index"
+    )
     _check_lcurve(tcase, "nvnmd_cnn/lcurve.out", cwd, script)
     os.chdir(cwd)
-    
+
 
 class TestMockedPrepDPTrain(unittest.TestCase):
     def setUp(self):
@@ -342,7 +353,7 @@ class TestMockedRunNvNMDTrain(unittest.TestCase):
         for ii in self.init_models:
             if Path(ii).exists():
                 shutil.rmtree(ii)
-                
+
     def test(self):
         for ii in range(3):
             run = MockedRunNvNMDTrain()
@@ -359,13 +370,31 @@ class TestMockedRunNvNMDTrain(unittest.TestCase):
             op = run.execute(ip)
             self.assertEqual(op["script"], Path(train_task_pattern % ii) / "input.json")
             self.assertTrue(op["script"].is_file())
-            self.assertEqual(op["model"] / "frozen_model.pb", Path(train_task_pattern % ii) / "nvnmd_models/frozen_model.pb")
-            self.assertEqual(op["model"] / "model.pb", Path(train_task_pattern % ii) / "nvnmd_models/model.pb")
-            self.assertEqual(op["model"] / "model.ckpt.meta", Path(train_task_pattern % ii) / "nvnmd_models/model.ckpt.meta")
-            self.assertEqual(op["model"] / "model.ckpt.data-00000-of-00001", Path(train_task_pattern % ii) / "nvnmd_models/model.ckpt.data-00000-of-00001")
-            self.assertEqual(op["model"] / "model.ckpt.index", Path(train_task_pattern % ii) / "nvnmd_models/model.ckpt.index")
+            self.assertEqual(
+                op["model"] / "frozen_model.pb",
+                Path(train_task_pattern % ii) / "nvnmd_models/frozen_model.pb",
+            )
+            self.assertEqual(
+                op["model"] / "model.pb",
+                Path(train_task_pattern % ii) / "nvnmd_models/model.pb",
+            )
+            self.assertEqual(
+                op["model"] / "model.ckpt.meta",
+                Path(train_task_pattern % ii) / "nvnmd_models/model.ckpt.meta",
+            )
+            self.assertEqual(
+                op["model"] / "model.ckpt.data-00000-of-00001",
+                Path(train_task_pattern % ii)
+                / "nvnmd_models/model.ckpt.data-00000-of-00001",
+            )
+            self.assertEqual(
+                op["model"] / "model.ckpt.index",
+                Path(train_task_pattern % ii) / "nvnmd_models/model.ckpt.index",
+            )
             self.assertEqual(op["log"], Path(train_task_pattern % ii) / "log")
-            self.assertEqual(op["lcurve"], Path(train_task_pattern % ii) / "nvnmd_cnn/lcurve.out")
+            self.assertEqual(
+                op["lcurve"], Path(train_task_pattern % ii) / "nvnmd_cnn/lcurve.out"
+            )
             check_run_train_nvnmd_output(
                 self,
                 self.task_names[ii],
@@ -373,7 +402,7 @@ class TestMockedRunNvNMDTrain(unittest.TestCase):
                 self.init_models[ii],
                 self.init_data,
                 self.iter_data,
-            ) 
+            )
 
 
 @unittest.skipIf(skip_ut_with_dflow, skip_ut_with_dflow_reason)

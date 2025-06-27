@@ -81,10 +81,10 @@ class TestRunNvNMDTrain(unittest.TestCase):
         self.init_data = [Path("init/data-0"), Path("init/data-1")]
         self.init_data = sorted(list(self.init_data))
 
-        #self.init_model = Path("bar.pb")
-        #self.init_model_ckpt_meta = Path("model.ckpt.meta")
-        #self.init_model_ckpt_data = Path("model.ckpt.data")
-        #self.init_model_ckpt_index = Path("model.ckpt.index")
+        # self.init_model = Path("bar.pb")
+        # self.init_model_ckpt_meta = Path("model.ckpt.meta")
+        # self.init_model_ckpt_data = Path("model.ckpt.data")
+        # self.init_model_ckpt_index = Path("model.ckpt.index")
         self.init_model = Path("nvnmd_models")
 
         self.config = {
@@ -203,7 +203,7 @@ class TestRunNvNMDTrain(unittest.TestCase):
                 "start_pref_e": 0.1,
                 "start_pref_f": 100,
                 "start_pref_v": 0.0,
-            }, 
+            },
         }
 
         self.idict_v1 = {
@@ -320,7 +320,6 @@ class TestRunNvNMDTrain(unittest.TestCase):
         self.assertAlmostEqual(config["init_model_start_pref_f"], 100)
         self.assertAlmostEqual(config["init_model_start_pref_v"], 0.0)
 
-
     def test_update_input_dict_v1_init_model(self):
         odict = RunDPTrain.write_data_to_input_script(
             self.idict_v1,
@@ -422,28 +421,25 @@ class TestRunNvNMDTrain(unittest.TestCase):
                 }
             )
         )
+        self.assertEqual(out["script"], work_dir / train_script_name)
         self.assertEqual(
-            out["script"],
-            work_dir / train_script_name
-        )
-        self.assertEqual(
-            out["model"] / "frozen_model.pb", 
+            out["model"] / "frozen_model.pb",
             work_dir / "nvnmd_models/frozen_model.pb",
         )
         self.assertEqual(
-            out["model"] / "model.pb", 
+            out["model"] / "model.pb",
             work_dir / "nvnmd_models/model.pb",
         )
         self.assertEqual(
-            out["model"] / "model.ckpt.data-00000-of-00001", 
+            out["model"] / "model.ckpt.data-00000-of-00001",
             work_dir / "nvnmd_models/model.ckpt.data-00000-of-00001",
         )
         self.assertEqual(
-            out["model"] / "model.ckpt.meta", 
+            out["model"] / "model.ckpt.meta",
             work_dir / "nvnmd_models/model.ckpt.meta",
         )
         self.assertEqual(
-            out["model"] / "model.ckpt.index", 
+            out["model"] / "model.ckpt.index",
             work_dir / "nvnmd_models/model.ckpt.index",
         )
         self.assertEqual(
@@ -503,28 +499,25 @@ class TestRunNvNMDTrain(unittest.TestCase):
                 }
             )
         )
+        self.assertEqual(out["script"], work_dir / train_script_name)
         self.assertEqual(
-            out["script"],
-            work_dir / train_script_name
-        )
-        self.assertEqual(
-            out["model"] / "frozen_model.pb", 
+            out["model"] / "frozen_model.pb",
             work_dir / "nvnmd_models/frozen_model.pb",
         )
         self.assertEqual(
-            out["model"] / "model.pb", 
+            out["model"] / "model.pb",
             work_dir / "nvnmd_models/model.pb",
         )
         self.assertEqual(
-            out["model"] / "model.ckpt.data-00000-of-00001", 
+            out["model"] / "model.ckpt.data-00000-of-00001",
             work_dir / "nvnmd_models/model.ckpt.data-00000-of-00001",
         )
         self.assertEqual(
-            out["model"] / "model.ckpt.meta", 
+            out["model"] / "model.ckpt.meta",
             work_dir / "nvnmd_models/model.ckpt.meta",
         )
         self.assertEqual(
-            out["model"] / "model.ckpt.index", 
+            out["model"] / "model.ckpt.index",
             work_dir / "nvnmd_models/model.ckpt.index",
         )
         self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
@@ -578,28 +571,25 @@ class TestRunNvNMDTrain(unittest.TestCase):
                 }
             )
         )
+        self.assertEqual(out["script"], work_dir / train_script_name)
         self.assertEqual(
-            out["script"],
-            work_dir / train_script_name
-        )
-        self.assertEqual(
-            out["model"] / "frozen_model.pb", 
+            out["model"] / "frozen_model.pb",
             work_dir / "nvnmd_models/frozen_model.pb",
         )
         self.assertEqual(
-            out["model"] / "model.pb", 
+            out["model"] / "model.pb",
             work_dir / "nvnmd_models/model.pb",
         )
         self.assertEqual(
-            out["model"] / "model.ckpt.data-00000-of-00001", 
+            out["model"] / "model.ckpt.data-00000-of-00001",
             work_dir / "nvnmd_models/model.ckpt.data-00000-of-00001",
         )
         self.assertEqual(
-            out["model"] / "model.ckpt.meta", 
+            out["model"] / "model.ckpt.meta",
             work_dir / "nvnmd_models/model.ckpt.meta",
         )
         self.assertEqual(
-            out["model"] / "model.ckpt.index", 
+            out["model"] / "model.ckpt.index",
             work_dir / "nvnmd_models/model.ckpt.index",
         )
         self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
@@ -798,28 +788,25 @@ class TestRunNvNMDTrainNullIterData(unittest.TestCase):
                 }
             )
         )
+        self.assertEqual(out["script"], work_dir / train_script_name)
         self.assertEqual(
-            out["script"],
-            work_dir / train_script_name
-        )
-        self.assertEqual(
-            out["model"] / "frozen_model.pb", 
+            out["model"] / "frozen_model.pb",
             work_dir / "nvnmd_models/frozen_model.pb",
         )
         self.assertEqual(
-            out["model"] / "model.pb", 
+            out["model"] / "model.pb",
             work_dir / "nvnmd_models/model.pb",
         )
         self.assertEqual(
-            out["model"] / "model.ckpt.data-00000-of-00001", 
+            out["model"] / "model.ckpt.data-00000-of-00001",
             work_dir / "nvnmd_models/model.ckpt.data-00000-of-00001",
         )
         self.assertEqual(
-            out["model"] / "model.ckpt.meta", 
+            out["model"] / "model.ckpt.meta",
             work_dir / "nvnmd_models/model.ckpt.meta",
         )
         self.assertEqual(
-            out["model"] / "model.ckpt.index", 
+            out["model"] / "model.ckpt.index",
             work_dir / "nvnmd_models/model.ckpt.index",
         )
         self.assertEqual(out["lcurve"], work_dir / "nvnmd_cnn/lcurve.out")
