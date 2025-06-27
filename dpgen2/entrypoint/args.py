@@ -142,9 +142,9 @@ def nvnmd_train_args():
         Argument(
             "config",
             dict,
-            RunNvNMDTrain.training_args(),
+            RunDPTrain.training_args(),
             optional=True,
-            default=RunNvNMDTrain.normalize_config({}),
+            default=RunDPTrain.normalize_config({}),
             doc=doc_numb_models,
         ),
         Argument("numb_models", int, optional=True, default=4, doc=doc_numb_models),
@@ -504,7 +504,7 @@ def variant_explore():
         "type",
         [
             Argument("lmp", dict, lmp_args(), doc=doc_lmp),
-            Argument("nvnmd", dict, lmp_args(), doc=doc_lmp),
+            Argument("lmp-nvnmd", dict, lmp_args(), doc=doc_lmp),
             Argument("calypso", dict, caly_args(), doc=doc_calypso),
             Argument("calypso:default", dict, caly_args(), doc=doc_calypso),
             Argument("calypso:merge", dict, caly_args(), doc=doc_calypso),

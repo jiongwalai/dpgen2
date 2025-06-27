@@ -206,7 +206,7 @@ def revise_lmp_input_dump(lmp_lines, trj_freq, pimd_bead=None, nvnmd_version=Non
     else:
         lmp_lines[
             idx
-        ] = f"dump            dpgen_dump all custom {trj_freq} {lmp_traj_file_name} id type x y z fx fy fz"
+        ] = "dump            dpgen_dump all custom %s ${rerun}_%s id type x y z fx fy fz" % (trj_freq, lmp_traj_file_name)
         lmp_lines.insert(idx + 1, 'if "${rerun} > 0" then "jump SELF rerun"')
     return lmp_lines
 
@@ -223,7 +223,7 @@ def revise_lmp_input_plm(lmp_lines, in_plm, out_plm="output.plumed"):
 def revise_lmp_input_rerun(lmp_lines):
     lmp_lines.append("jump SELF end")
     lmp_lines.append("label rerun")
-    lmp_lines.append(f"rerun {lmp_traj_name}.0 dump x y z fx fy fz add yes")
+    lmp_lines.append(f"rerun 0_{lmp_traj_name} dump x y z fx fy fz add yes")
     lmp_lines.append("label end")
     return lmp_lines
 

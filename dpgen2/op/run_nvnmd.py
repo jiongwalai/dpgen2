@@ -5,20 +5,19 @@ import logging
 import os
 import random
 import re
+import shutil
 from pathlib import (
     Path,
 )
 from typing import (
     List,
+    Union,
     Optional,
     Set,
     Tuple,
 )
 
 import numpy as np
-from ase.io import (
-    read,
-)
 from dargs import (
     Argument,
     ArgumentEncoder,
@@ -47,8 +46,9 @@ from dpgen2.constants import (
     plm_output_name,
     pytorch_model_name_pattern,
 )
-from dpgen2.op.run_caly_model_devi import (
-    write_model_devi_out,
+from dpgen2.op.run_lmp import (
+    RunLmp,
+    find_only_one_key,
 )
 from dpgen2.utils import (
     BinaryFileInput,
@@ -105,7 +105,7 @@ class RunNvNMD(OP):
         ip : dict
             Input dict with components:
 
-            - `config`: (`dict`) The config of lmp task. Check `RunNvNMD.lmp_args` for definitions.
+            - `config`: (`dict`) The config of lmp task. Check `RunLmp.lmp_args` for definitions.
             - `task_name`: (`str`) The name of the task.
             - `task_path`: (`Artifact(Path)`) The path that contains all input files prepareed by `PrepLmp`.
             - `models`: (`Artifact(List[Path])`) The frozen model to estimate the model deviation. The first model with be used to drive molecular dynamics simulation.
@@ -124,7 +124,7 @@ class RunNvNMD(OP):
             On the failure of LAMMPS execution. Handle different failure cases? e.g. loss atoms.
         """
         config = ip["config"] if ip["config"] is not None else {}
-        config = RunNvNMD.normalize_config(config)
+        config = RunLmp.normalize_config(config)
         command = config["command"]
         teacher_model: Optional[BinaryFileInput] = config["teacher_model_path"]
         shuffle_models: Optional[bool] = config["shuffle_models"]
@@ -134,22 +134,14 @@ class RunNvNMD(OP):
         # input_files = [lmp_conf_name, lmp_input_name]
         # input_files = [(Path(task_path) / ii).resolve() for ii in input_files]
         input_files = [ii.resolve() for ii in Path(task_path).iterdir()]
-        model_files = [Path(ii).resolve() for ii in models]
+        model_files = [Path(ii).resolve() / "model.pb" for ii in models]
         work_dir = Path(task_name)
-
-        if teacher_model is not None:
-            assert (
-                len(model_files) == 1
-            ), "One model is enough in knowledge distillation"
-            ext = os.path.splitext(teacher_model.file_name)[-1]
-            teacher_model_file = "teacher_model" + ext
-            teacher_model.save_as_file(teacher_model_file)
-            model_files = [Path(teacher_model_file).resolve()] + model_files
 
         with set_directory(work_dir):
             # link input files
             for ii in input_files:
                 iname = ii.name
+                #Path(iname).symlink_to(ii)
                 try:
                     Path(iname).symlink_to(ii)
                 except:
@@ -161,6 +153,7 @@ class RunNvNMD(OP):
                 ext = os.path.splitext(mm)[-1]
                 if ext == ".pb":
                     mname = model_name_pattern % (idx)
+                    #Path(mname).symlink_to(mm)
                     try:
                         Path(mname).symlink_to(mm)
                     except:
@@ -169,10 +162,6 @@ class RunNvNMD(OP):
                         )
                         pass
 
-                elif ext == ".pt":
-                    # freeze model
-                    mname = pytorch_model_name_pattern % (idx)
-                    freeze_model(mm, mname, config.get("model_frozen_head"))
                 else:
                     raise RuntimeError(
                         "Model file with extension '%s' is not supported" % ext
@@ -182,72 +171,51 @@ class RunNvNMD(OP):
             if shuffle_models:
                 random.shuffle(model_names)
 
-            set_models(lmp_input_name, model_names)
+            set_lmp_models(lmp_input_name, model_names)
 
             # run lmp
-            commands = " ; ".join(
-                [
-                    " ".join(
-                        [
-                            "cp",
-                            str(model_name),
-                            "model.pb",
-                            "&&",
-                            command,
-                            "-i",
-                            lmp_input_name,
-                            "-log",
-                            lmp_log_name,
-                            "-v",
-                            "rerun",
-                            "%d" % i,
-                            "&&",
-                            "cp",
-                            lmp_traj_name,
-                            lmp_traj_name + ".%d" % i,
-                        ]
-                    )
-                    for i, model_name in enumerate(models)
-                ]
-            )
-            ret, out, err = run_command(commands, shell=True)
-            if ret != 0:
-                logging.error(
-                    "".join(
-                        (
-                            "lmp failed\n",
-                            "command was: ",
-                            commands,
-                            "out msg: ",
-                            out,
-                            "\n",
-                            "err msg: ",
-                            err,
-                            "\n",
+            for ii in range(len(model_names)):
+                commands = " ".join(
+                    [
+                        command,
+                        "-i",
+                        "%d_%s" % (ii, lmp_input_name),
+                        "-log",
+                        "%d_%s" % (ii, lmp_log_name),
+                        "-v",
+                        "rerun",
+                        "%d" % ii,
+                    ]
+                )
+                ret, out, err = run_command(commands, shell=True)
+                if ret != 0:
+                    logging.error(
+                        "".join(
+                            (
+                                "lmp failed\n",
+                                "command was: ",
+                                commands,
+                                "out msg: ",
+                                out,
+                                "\n",
+                                "err msg: ",
+                                err,
+                                "\n",
+                            )
                         )
                     )
-                )
-                raise TransientError("lmp failed")
+                    raise TransientError("lmp failed")
 
-            ele_temp = None
-            if config.get("use_ele_temp", 0):
-                ele_temp = get_ele_temp(lmp_log_name)
-                if ele_temp is not None:
-                    data = {
-                        "ele_temp": ele_temp,
-                    }
-                    with open("job.json", "w") as f:
-                        json.dump(data, f, indent=4)
             merge_pimd_files()
 
-            if os.path.exists(lmp_traj_name):
-                calc_model_devi(
-                    [lmp_traj_name + f".{i}" for i in range(len(model_names))]
-                )
+            traj_files = glob.glob("*_%s"%lmp_traj_name)
+            if len(traj_files) > 1:
+                calc_model_devi(traj_files, lmp_model_devi_name)
+                
 
         ret_dict = {
-            "log": work_dir / lmp_log_name,
-            "traj": work_dir / lmp_traj_name,
+            "log": work_dir / ("%d_%s"%(0, lmp_log_name)),
+            "traj": work_dir / ("%d_%s" % (0, lmp_traj_name)),
             "model_devi": self.get_model_devi(work_dir / lmp_model_devi_name),
         }
         plm_output = (
@@ -256,168 +224,36 @@ class RunNvNMD(OP):
             else {}
         )
         ret_dict.update(plm_output)
-        if ele_temp is not None:
-            ret_dict["optional_output"] = work_dir / "job.json"
-
         return OPIO(ret_dict)
 
     def get_model_devi(self, model_devi_file):
         return model_devi_file
 
-    @staticmethod
-    def lmp_args():
-        doc_lmp_cmd = "The command of LAMMPS"
-        doc_teacher_model = "The teacher model in `Knowledge Distillation`"
-        doc_shuffle_models = "Randomly pick a model from the group of models to drive theexploration MD simulation"
-        doc_head = "Select a head from multitask"
-        doc_use_ele_temp = "Whether to use electronic temperature, 0 for no, 1 for frame temperature, and 2 for atomic temperature"
-        doc_use_hdf5 = "Use HDF5 to store trajs and model_devis"
-        return [
-            Argument("command", str, optional=True, default="lmp", doc=doc_lmp_cmd),
-            Argument(
-                "teacher_model_path",
-                [BinaryFileInput, str],
-                optional=True,
-                default=None,
-                doc=doc_teacher_model,
-            ),
-            Argument(
-                "shuffle_models",
-                bool,
-                optional=True,
-                default=False,
-                doc=doc_shuffle_models,
-            ),
-            Argument("head", str, optional=True, default=None, doc=doc_head),
-            Argument(
-                "use_ele_temp", int, optional=True, default=0, doc=doc_use_ele_temp
-            ),
-            Argument(
-                "model_frozen_head", str, optional=True, default=None, doc=doc_head
-            ),
-            Argument(
-                "use_hdf5",
-                bool,
-                optional=True,
-                default=False,
-                doc=doc_use_hdf5,
-            ),
-        ]
 
-    @staticmethod
-    def normalize_config(data={}):
-        ta = RunNvNMD.lmp_args()
-        base = Argument("base", dict, ta)
-        data = base.normalize_value(data, trim_pattern="_*")
-        base.check_value(data, strict=True)
-        return data
+config_args = RunLmp.lmp_args
 
 
-config_args = RunNvNMD.lmp_args
-
-
-def set_models(lmp_input_name: str, model_names: List[str]):
+def set_lmp_models(lmp_input_name: str, model_names: List[str]):
     with open(lmp_input_name, encoding="utf8") as f:
         lmp_input_lines = f.readlines()
 
     idx = find_only_one_key(
-        lmp_input_lines, ["pair_style", "deepmd"], raise_not_found=False
+        lmp_input_lines, ["pair_style", "nvnmd"], raise_not_found=False
     )
     if idx is None:
         return
     new_line_split = lmp_input_lines[idx].split()
-    match_first = -1
-    match_last = -1
-    pattern = model_name_match_pattern
-    for sidx, ii in enumerate(new_line_split):
-        if re.fullmatch(pattern, ii) is not None:
-            if match_first == -1:
-                match_first = sidx
-        else:
-            if match_first != -1:
-                match_last = sidx
-                break
-    if match_first == -1:
-        raise RuntimeError(
-            f"cannot file model pattern {pattern} in line " f" {lmp_input_lines[idx]}"
-        )
-    if match_last == -1:
+    match_idx = find_only_one_key(new_line_split, ['model.pb'], raise_not_found=False) 
+    if match_idx is None:
         raise RuntimeError(f"last matching index should not be -1, terribly wrong ")
-    for ii in range(match_last, len(new_line_split)):
-        if re.fullmatch(pattern, new_line_split[ii]) is not None:
-            raise RuntimeError(
-                f"unexpected matching of model pattern {pattern} "
-                f"in line {lmp_input_lines[idx]}"
-            )
-    new_line_split[match_first:match_last] = model_names
-    lmp_input_lines[idx] = " ".join(new_line_split) + "\n"
+    
+    for ii, model_name in enumerate(model_names):
+        new_line_split[match_idx] = model_name
+        
+        lmp_input_lines[idx] = " ".join(new_line_split) + "\n"
 
-    with open(lmp_input_name, "w", encoding="utf8") as f:
-        f.write("".join(lmp_input_lines))
-
-
-def find_only_one_key(lmp_lines, key, raise_not_found=True):
-    found = []
-    for idx in range(len(lmp_lines)):
-        words = lmp_lines[idx].split()
-        nkey = len(key)
-        if len(words) >= nkey and words[:nkey] == key:
-            found.append(idx)
-    if len(found) > 1:
-        raise RuntimeError("found %d keywords %s" % (len(found), key))
-    if len(found) == 0:
-        if raise_not_found:
-            raise RuntimeError("failed to find keyword %s" % (key))
-        else:
-            return None
-    return found[0]
-
-
-def get_ele_temp(lmp_log_name):
-    with open(lmp_log_name, encoding="utf8") as f:
-        lmp_log_lines = f.readlines()
-
-    for line in lmp_log_lines:
-        fields = line.split()
-        if fields[:2] == ["pair_style", "deepmd"]:
-            if "fparam" in fields:
-                # for rendering variables
-                try:
-                    return float(fields[fields.index("fparam") + 1])
-                except Exception:
-                    pass
-            if "aparam" in fields:
-                try:
-                    return float(fields[fields.index("aparam") + 1])
-                except Exception:
-                    pass
-
-    return None
-
-
-def freeze_model(input_model, frozen_model, head=None):
-    freeze_args = "-o %s" % frozen_model
-    if head is not None:
-        freeze_args += " --head %s" % head
-    freeze_cmd = "dp --pt freeze -c %s %s" % (input_model, freeze_args)
-    ret, out, err = run_command(freeze_cmd, shell=True)
-    if ret != 0:
-        logging.error(
-            "".join(
-                (
-                    "freeze failed\n",
-                    "command was",
-                    freeze_cmd,
-                    "out msg",
-                    out,
-                    "\n",
-                    "err msg",
-                    err,
-                    "\n",
-                )
-            )
-        )
-        raise TransientError("freeze failed")
+        with open("%d_%s"%(ii,lmp_input_name), "w", encoding="utf8") as f:
+            f.write("".join(lmp_input_lines))
 
 
 def merge_pimd_files():
@@ -439,6 +275,8 @@ def calc_model_devi(
     traj_files,
     fname="model_devi.out",
 ):
+    
+    from ase.io import read # type: ignore
     trajectories = []
     for f in traj_files:
         traj = read(f, format="lammps-dump-text", index=":", order=True)
@@ -482,3 +320,22 @@ def calc_model_devi(
 
     devi = np.array(devi)
     write_model_devi_out(devi, fname=fname)
+
+def write_model_devi_out(devi: np.ndarray, fname: Union[str, Path], header: str = ""):
+    assert devi.shape[1] == 8
+    header = "%s\n%10s" % (header, "step")
+    for item in "vf":
+        header += "%19s%19s%19s" % (
+            f"max_devi_{item}",
+            f"min_devi_{item}",
+            f"avg_devi_{item}",
+        )
+    with open(fname, "ab") as fp:
+        np.savetxt(
+            fp,
+            devi,
+            fmt=["%12d"] + ["%19.6e" for _ in range(devi.shape[1] - 1)],
+            delimiter="",
+            header=header,
+        )
+    return devi

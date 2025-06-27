@@ -105,7 +105,6 @@ from dpgen2.op import (
     PrepCalyModelDevi,
     PrepDPTrain,
     PrepLmp,
-    PrepNvNMDTrain,
     PrepRelax,
     RunCalyDPOptim,
     RunCalyModelDevi,
@@ -128,7 +127,6 @@ from dpgen2.superop import (
     PrepRunDPTrain,
     PrepRunFp,
     PrepRunLmp,
-    PrepRunNvNMDTrain,
 )
 from dpgen2.superop.caly_evo_step import (
     CalyEvoStep,
@@ -187,9 +185,9 @@ def make_concurrent_learning_op(
             optional_files=train_optional_files,
         )
     elif train_style == "dp-nvnmd":
-        prep_run_train_op = PrepRunNvNMDTrain(
+        prep_run_train_op = PrepRunDPTrain(
             "prep-run-nvnmd-train",
-            PrepNvNMDTrain,
+            PrepDPTrain,
             RunNvNMDTrain,
             prep_config=prep_train_config,
             run_config=run_train_config,
@@ -208,7 +206,7 @@ def make_concurrent_learning_op(
             run_config=run_explore_config,
             upload_python_packages=upload_python_packages,
         )
-    elif "nvnmd" in explore_style:
+    elif "lmp-nvnmd" in explore_style:
         prep_run_explore_op = PrepRunLmp(
             "prep-run-nvnmd",
             PrepLmp,
@@ -310,7 +308,7 @@ def make_naive_exploration_scheduler(
     # use npt task group
     explore_style = config["explore"]["type"]
 
-    if explore_style in ("lmp", "nvnmd"):
+    if explore_style in ("lmp", "lmp-nvnmd"):
         return make_lmp_naive_exploration_scheduler(config)
     elif "calypso" in explore_style or explore_style == "diffcsp":
         return make_naive_exploration_scheduler_without_conf(config, explore_style)
@@ -568,7 +566,7 @@ def workflow_concurrent_learning(
     else:
         if config["inputs"]["valid_data_uri"] is not None:
             valid_data = get_artifact_from_uri(config["inputs"]["valid_data_uri"])
-        elif config["inputs"]["valid_data_prefix"] is not None:
+        elif config["inputs"]["valid_data_sys"] is not None:
             valid_data_prefix = config["inputs"]["valid_data_prefix"]
             valid_data = config["inputs"]["valid_data_sys"]
             valid_data = get_systems_from_data(valid_data, valid_data_prefix)
@@ -660,8 +658,6 @@ def workflow_concurrent_learning(
         init_models = get_artifact_from_uri(config["train"]["init_models_uri"])
     elif train_style == "dp-dist" and config["train"]["student_model_uri"] is not None:
         init_models = get_artifact_from_uri(config["train"]["student_model_uri"])
-    elif train_style == "dp-nvnmd" and config["train"]["init_models_uri"] is not None:
-        init_models = get_artifact_from_uri(config["train"]["init_models_uri"])
     elif init_models_paths is not None:
         init_models = upload_artifact_and_print_uri(init_models_paths, "init_models")
     else:
@@ -699,9 +695,6 @@ def workflow_concurrent_learning(
         },
         artifacts={
             "init_models": init_models,
-            "init_models_ckpt_meta": None,
-            "init_models_ckpt_index": None,
-            "init_models_ckpt_data": None,
             "init_data": init_data,
             "iter_data": iter_data,
         },

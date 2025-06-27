@@ -15,9 +15,6 @@ from typing import (
 
 import dpdata
 import numpy as np
-from ase.io import (
-    read,
-)
 from dflow.python.opio import (
     HDF5Dataset,
 )
@@ -112,6 +109,10 @@ class TrajRenderLammps(TrajRender):
         conf_filters: Optional["ConfFilters"] = None,
         optional_outputs: Optional[List[Path]] = None,
     ) -> dpdata.MultiSystems:
+        
+        from ase.io import( # type: ignore
+            read,
+        )
         ntraj = len(trajs)
         ele_temp = None
         if optional_outputs:

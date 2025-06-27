@@ -137,16 +137,25 @@ def make_lmp_input(
     ret += "\n"
     ret += "thermo_style    custom step temp pe ke etotal press vol lx ly lz xy xz yz\n"
     ret += "thermo          ${THERMO_FREQ}\n"
-    if trj_seperate_files and nvnmd_version is None:
-        ret += "dump            1 all custom ${DUMP_FREQ} traj/*.lammpstrj id type x y z fx fy fz\n"
+    if trj_seperate_files:
+        if nvnmd_version is None:
+            ret += "dump            1 all custom ${DUMP_FREQ} traj/*.lammpstrj id type x y z fx fy fz\n"
+        else:
+            ret += "dump            1 all custom ${DUMP_FREQ} ${rerun}_traj/*.lammpstrj id type x y z fx fy fz\n"
     else:
         lmp_traj_file_name = (
             lmp_pimd_traj_name % pimd_bead if pimd_bead is not None else lmp_traj_name
         )
-        ret += (
-            "dump            1 all custom ${DUMP_FREQ} %s id type x y z fx fy fz\n"
-            % lmp_traj_file_name
-        )
+        if nvnmd_version is None:
+            ret += (
+                "dump            1 all custom ${DUMP_FREQ} %s id type x y z fx fy fz\n"
+                % lmp_traj_file_name
+            )
+        else:
+            ret += (
+                "dump            1 all custom ${DUMP_FREQ} ${rerun}_%s id type x y z fx fy fz\n"
+                % lmp_traj_file_name
+            )
     ret += "restart         10000 dpgen.restart\n"
     ret += "\n"
     if nvnmd_version is not None:
@@ -201,6 +210,9 @@ def make_lmp_input(
     if nvnmd_version is not None:
         ret += "jump SELF end\n"
         ret += "label rerun\n"
-        ret += "rerun %s.0 dump x y z fx fy fz add yes\n" % lmp_traj_name
+        if trj_seperate_files:
+            ret += "rerun 0_traj/*.lammpstrj dump x y z fx fy fz add yes\n"
+        else:
+            ret += "rerun 0_%s dump x y z fx fy fz add yes\n" % lmp_traj_name
         ret += "label end\n"
     return ret
