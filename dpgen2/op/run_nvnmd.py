@@ -126,7 +126,6 @@ class RunNvNMD(OP):
         config = ip["config"] if ip["config"] is not None else {}
         config = RunLmp.normalize_config(config)
         command = config["command"]
-        teacher_model: Optional[BinaryFileInput] = config["teacher_model_path"]
         shuffle_models: Optional[bool] = config["shuffle_models"]
         task_name = ip["task_name"]
         task_path = ip["task_path"]
@@ -283,7 +282,7 @@ def calc_model_devi(
 
     num_frames = len(trajectories[0])
     for traj in trajectories:
-        assert len(traj) == num_frames, "Not match"
+        assert len(traj) == num_frames, f"Trajectory length mismatch: expected {num_frames}, got {len(traj)} frames"
 
     devi = []
     for frame_idx in range(num_frames):

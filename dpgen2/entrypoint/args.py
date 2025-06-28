@@ -31,9 +31,6 @@ from dpgen2.op.run_dp_train import (
 from dpgen2.op.run_lmp import (
     RunLmp,
 )
-from dpgen2.op.run_nvnmd_train import (
-    RunNvNMDTrain,
-)
 from dpgen2.utils import (
     normalize_step_dict,
     step_conf_args,
@@ -145,7 +142,7 @@ def nvnmd_train_args():
             RunDPTrain.training_args(),
             optional=True,
             default=RunDPTrain.normalize_config({}),
-            doc=doc_numb_models,
+            doc=doc_config,
         ),
         Argument("numb_models", int, optional=True, default=4, doc=doc_numb_models),
         Argument(

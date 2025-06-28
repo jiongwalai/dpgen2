@@ -54,7 +54,6 @@ from mocked_ops import (
     MockedRunDPTrain,
     MockedRunDPTrainNoneInitModel,
     MockedRunNvNMDTrain,
-    MockedRunNvNMDTrainCheckOptParam,
     MockedRunNvNMDTrainNoneInitModel,
     make_mocked_init_data,
     make_mocked_init_models,
