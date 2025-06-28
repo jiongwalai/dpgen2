@@ -134,6 +134,7 @@ def _check_model(
     for ii in range(len(mlines)):
         tcase.assertEqual(flines[ii + 1], mlines[ii])
 
+
 def _check_nvnmd_model_files(tcase, cwd, init_model):
     """Helper to check all nvnmd model files."""
     model_checks = [
@@ -145,6 +146,7 @@ def _check_nvnmd_model_files(tcase, cwd, init_model):
     ]
     for output_file, expected_file in model_checks:
         _check_model(tcase, output_file, cwd, expected_file)
+
 
 def _check_lcurve(
     tcase,
