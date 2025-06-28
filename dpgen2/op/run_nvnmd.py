@@ -282,7 +282,9 @@ def calc_model_devi(
 
     num_frames = len(trajectories[0])
     for traj in trajectories:
-        assert len(traj) == num_frames, f"Trajectory length mismatch: expected {num_frames}, got {len(traj)} frames"
+        assert (
+            len(traj) == num_frames
+        ), f"Trajectory length mismatch: expected {num_frames}, got {len(traj)} frames"
 
     devi = []
     for frame_idx in range(num_frames):
