@@ -134,6 +134,17 @@ def _check_model(
     for ii in range(len(mlines)):
         tcase.assertEqual(flines[ii + 1], mlines[ii])
 
+def _check_nvnmd_model_files(tcase, cwd, init_model):
+    """Helper to check all nvnmd model files."""
+    model_checks = [
+        ("nvnmd_models/frozen_model.pb", init_model / "frozen_model.pb"),
+        ("nvnmd_models/model.pb", init_model / "frozen_model.pb"),
+        ("nvnmd_models/model.ckpt.meta", init_model / "model.ckpt.meta"),
+        ("nvnmd_models/model.ckpt.data-00000-of-00001", init_model / "model.ckpt.data"),
+        ("nvnmd_models/model.ckpt.index", init_model / "model.ckpt.index"),
+    ]
+    for output_file, expected_file in model_checks:
+        _check_model(tcase, output_file, cwd, expected_file)
 
 def _check_lcurve(
     tcase,
@@ -147,7 +158,6 @@ def _check_lcurve(
         mlines = fp.read().strip().split("\n")
     tcase.assertEqual(flines[0], "read from train_script: ")
     for ii in range(len(mlines)):
-        print(flines[ii + 1], mlines[ii])
         tcase.assertEqual(flines[ii + 1], mlines[ii])
 
 
@@ -198,22 +208,7 @@ def check_run_train_nvnmd_output(
         iter_data,
         only_check_name=only_check_name,
     )
-    _check_model(
-        tcase, "nvnmd_models/frozen_model.pb", cwd, init_model / "frozen_model.pb"
-    )
-    _check_model(tcase, "nvnmd_models/model.pb", cwd, init_model / "frozen_model.pb")
-    _check_model(
-        tcase, "nvnmd_models/model.ckpt.meta", cwd, init_model / "model.ckpt.meta"
-    )
-    _check_model(
-        tcase,
-        "nvnmd_models/model.ckpt.data-00000-of-00001",
-        cwd,
-        init_model / "model.ckpt.data",
-    )
-    _check_model(
-        tcase, "nvnmd_models/model.ckpt.index", cwd, init_model / "model.ckpt.index"
-    )
+    _check_nvnmd_model_files(tcase, cwd, init_model)
     _check_lcurve(tcase, "nvnmd_cnn/lcurve.out", cwd, script)
     os.chdir(cwd)
 

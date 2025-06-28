@@ -1,57 +1,41 @@
 import glob
 import itertools
-import json
 import logging
 import os
 import random
-import re
-import shutil
 from pathlib import (
     Path,
 )
 from typing import (
     List,
     Optional,
-    Set,
-    Tuple,
     Union,
 )
 
 import numpy as np
-from dargs import (
-    Argument,
-    ArgumentEncoder,
-    Variant,
-    dargs,
-)
+
 from dflow.python import (
     OP,
     OPIO,
     Artifact,
     BigParameter,
-    FatalError,
-    HDF5Datasets,
     OPIOSign,
     TransientError,
 )
 
 from dpgen2.constants import (
-    lmp_conf_name,
     lmp_input_name,
     lmp_log_name,
     lmp_model_devi_name,
     lmp_traj_name,
-    model_name_match_pattern,
     model_name_pattern,
     plm_output_name,
-    pytorch_model_name_pattern,
 )
 from dpgen2.op.run_lmp import (
     RunLmp,
     find_only_one_key,
 )
 from dpgen2.utils import (
-    BinaryFileInput,
     set_directory,
 )
 from dpgen2.utils.run_command import (
@@ -243,7 +227,7 @@ def set_lmp_models(lmp_input_name: str, model_names: List[str]):
     new_line_split = lmp_input_lines[idx].split()
     match_idx = find_only_one_key(new_line_split, ["model.pb"], raise_not_found=False)
     if match_idx is None:
-        raise RuntimeError(f"last matching index should not be -1, terribly wrong ")
+        raise RuntimeError("last matching index should not be -1, terribly wrong ")
 
     for ii, model_name in enumerate(model_names):
         new_line_split[match_idx] = model_name
