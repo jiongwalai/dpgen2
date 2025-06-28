@@ -64,6 +64,9 @@ from .prep_run_fp import (
 from .prep_run_lmp import (
     PrepRunLmp,
 )
+from .prep_run_nvnmd_train import (
+    PrepRunNvNMDTrain,
+)
 
 block_default_optional_parameter = {
     "data_mixed_type": False,
