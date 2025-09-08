@@ -105,6 +105,7 @@ from dpgen2.op import (
     PrepCalyModelDevi,
     PrepDPTrain,
     PrepLmp,
+    PrepNvNMDTrain,
     PrepRelax,
     RunCalyDPOptim,
     RunCalyModelDevi,
@@ -127,6 +128,7 @@ from dpgen2.superop import (
     PrepRunDPTrain,
     PrepRunFp,
     PrepRunLmp,
+    PrepRunNvNMDTrain,
 )
 from dpgen2.superop.caly_evo_step import (
     CalyEvoStep,
