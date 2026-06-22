@@ -1,4 +1,4 @@
-"""Prep and Run Gaussian tasks."""
+"""Prep and Run DeepMD tasks."""
 import os
 from pathlib import (
     Path,
@@ -18,15 +18,23 @@ from dargs import (
 )
 from dflow.python import (
     FatalError,
+    OPIO,
     TransientError,
 )
 
 from dpgen2.constants import (
     fp_default_log_name,
     fp_default_out_data_name,
+    fp_task_pattern,
+)
+from dpgen2.utils.chdir import (
+    set_directory,
 )
 from dpgen2.utils.run_command import (
     run_command,
+)
+from dpgen2.utils.setup_ele_temp import (
+    setup_ele_temp,
 )
 
 from ..utils import (
@@ -71,6 +79,53 @@ class PrepDeepmd(PrepFp):
             This parameter is useless in deepmd.
         """
         conf_frame.to("deepmd/npy", deepmd_input_path)
+
+    @OP.exec_sign_check
+    def execute(
+        self,
+        ip: OPIO,
+    ) -> OPIO:
+        r"""Prepare one DeepMD task for all configurations.
+
+        All input configurations are gathered into one dpdata.MultiSystems and
+        written to a single task directory. The teacher model labels all
+        frames in one run.
+        """
+        confs = ip["confs"]
+        type_map = ip["type_map"]
+
+        has_fparam = any(len(list(mm.rglob("fparam.npy"))) > 0 for mm in confs)
+        has_aparam = any(len(list(mm.rglob("aparam.npy"))) > 0 for mm in confs)
+        if has_fparam:
+            setup_ele_temp(False)
+        if has_aparam:
+            setup_ele_temp(True)
+
+        mixed_type = any(
+            len(list(mm.rglob("*/real_atom_types.npy"))) > 0 for mm in confs
+        )
+
+        ms = dpdata.MultiSystems(type_map=type_map)
+        for mm in confs:
+            if mixed_type:
+                ms.load_systems_from_file(mm, fmt="deepmd/npy/mixed")
+            else:
+                ms.from_deepmd_npy(mm, labeled=False)
+
+        task_name = fp_task_pattern % 0
+        task_path = Path(task_name)
+        with set_directory(task_path):
+            if mixed_type:
+                ms.to_deepmd_npy_mixed(deepmd_input_path)
+            else:
+                ms.to_deepmd_npy(deepmd_input_path)
+
+        return OPIO(
+            {
+                "task_names": [task_name],
+                "task_paths": [task_path],
+            }
+        )
 
 
 class RunDeepmd(RunFp):
@@ -143,58 +198,48 @@ class RunDeepmd(RunFp):
         os.remove(deepmd_teacher_model)
         return dp, type_map_teacher
 
-    def _prep_input(self, type_map_teacher):
-        ss = dpdata.System(deepmd_input_path, fmt="deepmd/npy")
-        conf_type_map = ss["atom_names"]
+    def _dp_infer(self, dp, type_map_teacher, out_name):
+        mixed_type = len(
+            list(Path(deepmd_input_path).rglob("*/real_atom_types.npy"))
+        ) > 0
 
+        if mixed_type:
+            ms = dpdata.MultiSystems()
+            ms.load_systems_from_file(deepmd_input_path, fmt="deepmd/npy/mixed")
+        else:
+            ms = dpdata.MultiSystems()
+            ms.from_deepmd_npy(deepmd_input_path, labeled=False)
+
+        for ss in ms:
+            conf_type_map = ss["atom_names"]
+            self._check_type_map(conf_type_map, type_map_teacher)
+
+            atype = np.array(
+                [type_map_teacher.index(conf_type_map[j]) for j in ss["atom_types"]]
+            )
+
+            nframe = ss.get_nframes()
+            coord = ss["coords"]
+            cell = None if ss.nopbc else ss["cells"].reshape([nframe, -1])  # type: ignore
+
+            energy, force, virial_force = dp.eval(coord, cell, atype.tolist())
+
+            ss.data["energies"] = energy.reshape([-1])
+            ss.data["forces"] = force
+            ss.data["virials"] = virial_force.reshape([-1, 3, 3])
+
+        if mixed_type:
+            ms.to_deepmd_npy_mixed(out_name)
+        else:
+            ms.to_deepmd_npy(out_name)
+
+    def _check_type_map(self, conf_type_map, type_map_teacher):
         if not set(conf_type_map).issubset(set(type_map_teacher)):  # type: ignore
             err_message = (
                 f"the type map of system ({conf_type_map}) is not subset of "
                 + f"the type map of the teacher model ({type_map_teacher})."
             )
             raise FatalError("deepmd labeling failed\n", "err msg", err_message, "\n")
-
-        # make sure the order of elements in sys_type_map
-        # is the same as that in type_map_teacher
-        temp_type_map = [ele for ele in type_map_teacher if ele in set(conf_type_map)]  # type: ignore
-
-        ss.apply_type_map(temp_type_map)
-        ss.to("deepmd/npy", deepmd_temp_path)
-        return conf_type_map, temp_type_map
-
-    def _dp_infer(self, dp, type_map_teacher, out_name):
-        conf_type_map, temp_type_map = self._prep_input(type_map_teacher)
-
-        ss = dpdata.System(
-            deepmd_temp_path, fmt="deepmd/npy", type_map=type_map_teacher
-        )
-
-        coord_npy_path_list = list(Path(deepmd_temp_path).glob("*/coord.npy"))
-        assert len(coord_npy_path_list) == 1, coord_npy_path_list
-        coord_npy_path = coord_npy_path_list[0]
-        energy_npy_path = coord_npy_path.parent / "energy.npy"
-        force_npy_path = coord_npy_path.parent / "force.npy"
-        virial_npy_path = coord_npy_path.parent / "virial.npy"
-
-        nframe = ss.get_nframes()
-        coord = ss["coords"]
-        cell = None if ss.nopbc else ss["cells"].reshape([nframe, -1])  # type: ignore
-        atype = ss["atom_types"].tolist()  # type: ignore
-
-        energy, force, virial_force = dp.eval(coord, cell, atype)
-
-        with open(energy_npy_path, "wb") as f:
-            np.save(f, energy)
-        with open(force_npy_path, "wb") as f:
-            np.save(f, force)
-        with open(virial_npy_path, "wb") as f:
-            np.save(f, virial_force)
-
-        ss = dpdata.LabeledSystem(
-            deepmd_temp_path, fmt="deepmd/npy", type_map=temp_type_map
-        )
-        ss.apply_type_map(conf_type_map)
-        ss.to("deepmd/npy", out_name)
 
     @staticmethod
     def args() -> List[dargs.Argument]:
